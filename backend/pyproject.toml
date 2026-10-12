@@ -1,0 +1,29 @@
+[project]
+name = "jobsearch-backend"
+version = "0.1.0"
+description = "FastAPI backend for job-search"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "jobsearch-shared",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic>=2",
+    "pydantic-settings>=2",
+    "pyyaml>=6",
+    "python-dotenv>=1",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.2",
+    "pgvector>=0.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv.sources]
+jobsearch-shared = { workspace = true }
