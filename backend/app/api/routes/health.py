@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-
 from jobsearch_shared.schemas import HealthResponse
 
 router = APIRouter()

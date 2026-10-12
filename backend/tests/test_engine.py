@@ -1,9 +1,8 @@
 import pytest
-from sqlalchemy import create_engine
-
 from app.db import engine as engine_mod
 from app.db.engine import DEFAULT_DB_URL
 from app.models import Base
+from sqlalchemy import create_engine
 
 
 def test_database_url_default() -> None:
