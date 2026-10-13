@@ -10,5 +10,6 @@ from app.ingestion.drafts import JobDraft
 
 class JobSource(Protocol):
     name: str  # the ``jobs.source`` slug the service writes
+    skipped_no_id: int  # count of dicts dropped for missing/unparseable id
 
     def fetch(self) -> Iterator[JobDraft]: ...
