@@ -12,7 +12,7 @@
 - [ ] **PBI 1 — Jobs schema**
   - `jobs` table + Alembic migration + repository. (`companies`/`job_sources` deferred to PBI 3.)
   - Depends on: —
-- [ ] **PBI 2 — Source ingestion**
+- [x] **PBI 2 — Source ingestion**
   - Fetch from official job APIs / permitted feeds only (no bot-protection bypass).
   - Depends on: PBI 1
 - [ ] **PBI 3 — Normalization + dedup keys**
