@@ -1,4 +1,4 @@
-.PHONY: sync db-up db-down migrate dev ingest lint typecheck test
+.PHONY: sync db-up db-down migrate dev ingest lint typecheck test test-integration
 
 sync:
 	uv sync --all-packages
@@ -26,3 +26,6 @@ typecheck:
 
 test:
 	uv run pytest
+
+test-integration:
+	uv run pytest -m ingest
