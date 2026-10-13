@@ -961,7 +961,6 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
-    { name = "scrapy" },
 ]
 
 [package.metadata]
@@ -971,7 +970,6 @@ dev = [
     { name = "mypy", specifier = ">=1.11" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.6" },
-    { name = "scrapy", specifier = ">=2.19.0" },
 ]
 
 [[package]]
@@ -989,6 +987,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
+    { name = "scrapy" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1005,6 +1004,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2" },
     { name = "python-dotenv", specifier = ">=1" },
     { name = "pyyaml", specifier = ">=6" },
+    { name = "scrapy", specifier = ">=2.19.0" },
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
 ]

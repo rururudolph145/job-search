@@ -25,7 +25,7 @@ typecheck:
 	uv run mypy backend/app shared/jobsearch_shared
 
 test:
-	uv run pytest
+	uv run pytest -m "not ingest"
 
 test-integration:
 	uv run pytest -m ingest
