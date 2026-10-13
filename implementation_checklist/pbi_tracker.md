@@ -10,7 +10,7 @@
 > Goal: ingest job postings from permitted feeds, store them with a canonical identity, and browse them in a dashboard.
 
 - [ ] **PBI 1 — Jobs schema**
-  - `jobs`, `companies`, `job_sources` tables + Alembic migration + repositories.
+  - `jobs` table + Alembic migration + repository. (`companies`/`job_sources` deferred to PBI 3.)
   - Depends on: —
 - [ ] **PBI 2 — Source ingestion**
   - Fetch from official job APIs / permitted feeds only (no bot-protection bypass).

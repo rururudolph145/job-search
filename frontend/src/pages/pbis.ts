@@ -8,7 +8,7 @@ export const PBIS: Pbi[] = [
     stage: "mvp",
     title: "Jobs schema",
     description:
-      "jobs, companies, job_sources tables + Alembic migration + repositories.",
+      "jobs table + Alembic migration + repository. (companies/job_sources deferred to PBI 3.)",
     depends_on: [],
   },
   {
