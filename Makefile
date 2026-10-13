@@ -1,4 +1,4 @@
-.PHONY: sync db-up db-down migrate dev lint typecheck test
+.PHONY: sync db-up db-down migrate dev ingest lint typecheck test
 
 sync:
 	uv sync --all-packages
@@ -14,6 +14,9 @@ migrate:
 
 dev:
 	uv run --package jobsearch-backend uvicorn app.main:app --reload
+
+ingest:
+	uv run --package jobsearch-backend python -m app.ingest
 
 lint:
 	uv run ruff check . && uv run ruff format --check .
