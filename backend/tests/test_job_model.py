@@ -1,7 +1,6 @@
+from app.models import Base, Job
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session
-
-from app.models import Base, Job
 
 
 def test_jobs_table_has_expected_columns() -> None:
