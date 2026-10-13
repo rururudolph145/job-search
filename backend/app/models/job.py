@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Index, Text, func
+from sqlalchemy import BigInteger, DateTime, Index, Integer, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -9,7 +9,14 @@ from app.models.base import Base
 class Job(Base):
     __tablename__ = "jobs"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    # BIGINT on Postgres (the spec's mandated PK type); plain INTEGER on SQLite so
+    # the rowid autoincrements in unit tests (SQLite only auto-increments an
+    # ``INTEGER PRIMARY KEY`` — a ``BIGINT`` PK does not).
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
+    )
     source: Mapped[str] = mapped_column(Text, nullable=False)
     external_job_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
