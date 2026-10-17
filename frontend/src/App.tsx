@@ -1,15 +1,29 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { NavBar } from "./components/NavBar";
-import { DashboardPage } from "./pages/DashboardPage";
+import { JobsPage } from "./pages/JobsPage";
+import { JobDetailPage } from "./pages/JobDetailPage";
 import { PbiTrackerPage } from "./pages/PbiTrackerPage";
 
 const router = createBrowserRouter([
   {
     path: "/",
+    element: <Navigate to="/jobs" replace />,
+  },
+  {
+    path: "/jobs",
     element: (
       <>
         <NavBar />
-        <DashboardPage />
+        <JobsPage />
+      </>
+    ),
+  },
+  {
+    path: "/jobs/:id",
+    element: (
+      <>
+        <NavBar />
+        <JobDetailPage />
       </>
     ),
   },
