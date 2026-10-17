@@ -9,14 +9,14 @@
 
 > Goal: ingest job postings from permitted feeds, store them with a canonical identity, and browse them in a dashboard.
 
-- [ ] **PBI 1 — Jobs schema**
+- [x] **PBI 1 — Jobs schema**
   - `jobs` table + Alembic migration + repository. (`companies`/`job_sources` deferred to PBI 3.)
   - Depends on: —
 - [x] **PBI 2 — Source ingestion**
   - Fetch from official job APIs / permitted feeds only (no bot-protection bypass).
   - Depends on: PBI 1
-- [ ] **PBI 3 — Normalization + dedup keys**
-  - Canonical job identity across URLs and ATS providers.
+- [x] **PBI 3 — Normalization + dedup keys**
+  - Unique `(source, external_job_id)` identity via a partial unique index; field normalization at the ingest boundary. (Cross-ATS matching deferred — one source today.)
   - Depends on: PBI 1
 - [ ] **PBI 4 — Query routes**
   - List/detail/filter endpoints for jobs.
