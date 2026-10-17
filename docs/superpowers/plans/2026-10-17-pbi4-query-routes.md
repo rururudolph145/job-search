@@ -116,7 +116,7 @@ __all__ = ["HealthResponse", "JobListResponse", "JobResponse"]
 Run: `uv run --package jobsearch-shared pytest shared/tests/test_job_response.py -v`
 Expected: PASS (4 tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add shared/jobsearch_shared/schemas.py backend/app/schemas/__init__.py shared/tests/test_job_response.py
@@ -138,7 +138,7 @@ git commit -m "feat(jobs): add JobListResponse list contract"
   - `JobRepository.list(session, *, limit: int, offset: int, source: str | None = None, company: str | None = None, location: str | None = None, q: str | None = None) -> list[Job]`
   - `JobRepository.count(session, *, source: str | None = None, company: str | None = None, location: str | None = None, q: str | None = None) -> int`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `backend/tests/test_job_repository.py`. The existing module already imports `Session`, `Base`, `Job`, `JobRepository`, `create_engine`, `select`, and has the `session` fixture and `_make_job` helper. Add these tests (they reuse `_make_job` and `session`/`monkeypatch` unchanged):
 
@@ -199,12 +199,12 @@ def test_count_with_and_without_filters(
     assert repo.count(session, source="linkedin", q="data") == 0
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_job_repository.py -v` (from repo root)
 Expected: FAIL — `list()` takes keyword args but `source`/`company`/`location`/`q` are unexpected; `count` is undefined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Replace the top of `backend/app/repositories/job.py` — its `import` block and the `get`/`list` methods — with:
 
@@ -276,7 +276,7 @@ class JobRepository:
 
 Keep the existing `add` and `find_by_external_id` methods below `count` unchanged.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_job_repository.py -v` (from repo root)
 Expected: PASS (existing 8 + new 4 = 12 tests).
