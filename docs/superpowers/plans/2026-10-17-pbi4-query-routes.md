@@ -281,7 +281,7 @@ Keep the existing `add` and `find_by_external_id` methods below `count` unchange
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_job_repository.py -v` (from repo root)
 Expected: PASS (existing 8 + new 4 = 12 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/repositories/job.py backend/tests/test_job_repository.py
@@ -301,7 +301,7 @@ git commit -m "feat(jobs): add filter args to list + count to JobRepository"
 - Consumes: `JobRepository.list`/`count` (Task 2), `JobListResponse`/`JobResponse` (Task 1), `get_session` from `app.db.engine`.
 - Produces: `router` (FastAPI `APIRouter` with `prefix="/jobs"`), registered in `app.main`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `backend/tests/test_routes_jobs.py`:
 
@@ -371,14 +371,15 @@ def test_list_jobs_q_case_insensitive_substring(client: TestClient) -> None:
     assert [item["title"] for item in body["items"]] == ["Software Engineer"]
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_routes_jobs.py -v` (from repo root)
 Expected: FAIL — `GET /jobs` returns `404` (no route yet).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
-Create `backend/app/api/routes/jobs.py`:
+Create `backend/app/api/routes/jobs.py` (implemented with `Depends(get_db)`
+rather than `Depends(get_session)` — see the note at the end of this task):
 
 ```python
 from typing import Annotated
@@ -423,7 +424,7 @@ async def list_jobs(
     return JobListResponse(items=jobs, total=total)
 ```
 
-- [ ] **Step 4: Register the router**
+- [x] **Step 4: Register the router**
 
 In `backend/app/main.py`, change the import line to:
 
@@ -437,12 +438,12 @@ and add, after `app.include_router(health.router)`:
 app.include_router(jobs.router)
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_routes_jobs.py -v` (from repo root)
 Expected: PASS (3 tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/api/routes/jobs.py backend/app/main.py backend/tests/test_routes_jobs.py
@@ -450,6 +451,24 @@ git commit -m "feat(jobs): add GET /jobs list endpoint with filters + envelope"
 ```
 
 ---
+
+---
+
+**Implementation deviations (recorded 2026-10-17):**
+
+- `get_session` in `app/db/engine.py` is a `@contextmanager`. Handing it to
+  `Depends` makes FastAPI wrap it a second time, so *every* request failed with
+  `TypeError: '_GeneratorContextManager' object is not an iterator`. Added
+  `get_db` (plain generator, same `engine`/pool) in a separate commit,
+  `fix(db): add get_db generator for FastAPI Depends`, pinned by
+  `test_engine.py::test_get_db_works_as_fastapi_dependency` (asserts the session
+  is closed when the request ends; mutation-checked).
+- The in-memory SQLite fixture needs
+  `connect_args={"check_same_thread": False}, poolclass=StaticPool` because the
+  dependency runs in FastAPI's worker thread.
+- mypy strict rejects `list[Job]` for `items: list[JobResponse]`, so the handler
+  builds `[JobResponse.model_validate(job) for job in jobs]` (the pattern used
+  by `load_app_config`).
 
 ### Task 4: Harden list endpoint (empty set, total-vs-filters, bounds)
 
