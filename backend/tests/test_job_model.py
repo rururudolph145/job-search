@@ -35,8 +35,19 @@ def test_jobs_indexes_created() -> None:
 
     insp = inspect(engine)
     index_names = {ix["name"] for ix in insp.get_indexes("jobs")}
-    assert "ix_jobs_source_external_job_id" in index_names
+    assert "uq_jobs_source_external_job_id" in index_names
+    assert "ix_jobs_source_external_job_id" not in index_names
     assert "ix_jobs_last_seen_at" in index_names
+
+
+def test_source_external_id_index_is_unique_and_partial() -> None:
+    idx = next(
+        ix
+        for ix in Job.__table__.indexes
+        if ix.name == "uq_jobs_source_external_job_id"
+    )
+    assert idx.unique is True
+    assert idx.dialect_options["postgresql"]["where"] is not None
 
 
 def test_job_allows_null_company() -> None:

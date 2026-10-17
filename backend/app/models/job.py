@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Index, Integer, Text, func
+from sqlalchemy import BigInteger, DateTime, Index, Integer, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -36,6 +36,19 @@ class Job(Base):
     )
 
     __table_args__ = (
-        Index("ix_jobs_source_external_job_id", "source", "external_job_id"),
+        # Partial unique identity key. `postgresql_where` (the SQLAlchemy 2.0
+        # dialect-option name for a partial index predicate) is emitted by the
+        # Postgres DDL compiler but dropped on SQLite (which has no partial
+        # indexes); both dialects keep the index UNIQUE and null-tolerant, which
+        # is what the unit tests exercise. With the unique index in place, the
+        # old non-unique `ix_jobs_source_external_job_id` is redundant — the
+        # unique index serves every lookup the old one did.
+        Index(
+            "uq_jobs_source_external_job_id",
+            "source",
+            "external_job_id",
+            unique=True,
+            postgresql_where=text("external_job_id IS NOT NULL"),
+        ),
         Index("ix_jobs_last_seen_at", "last_seen_at"),
     )
