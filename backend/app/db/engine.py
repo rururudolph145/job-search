@@ -23,3 +23,14 @@ engine: Engine = make_engine()
 def get_session() -> Iterator[Session]:
     with Session(engine) as session:
         yield session
+
+
+def get_db() -> Iterator[Session]:
+    """FastAPI dependency form of :func:`get_session`.
+
+    ``get_session`` is a ``@contextmanager`` and cannot be handed to
+    ``Depends`` (FastAPI would wrap it a second time); this plain generator
+    shares the same module-level engine and pool.
+    """
+    with Session(engine) as session:
+        yield session
