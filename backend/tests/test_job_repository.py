@@ -139,7 +139,9 @@ def test_same_id_different_source_coexists(
     assert len(rows) == 2
 
 
-def test_list_filters_by_source(session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_list_filters_by_source(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(engine_mod, "engine", session.get_bind())
     repo = JobRepository()
     session.add(_make_job(source="google_careers", external_job_id="1", title="A"))
@@ -168,14 +170,18 @@ def test_list_filters_by_company_and_location(
 ) -> None:
     monkeypatch.setattr(engine_mod, "engine", session.get_bind())
     repo = JobRepository()
-    session.add(_make_job(company="Google", location="Tokyo", external_job_id="1", title="A"))
-    session.add(_make_job(company="Meta", location="Tokyo", external_job_id="2", title="B"))
-    session.add(_make_job(company="Google", location="Osaka", external_job_id="3", title="C"))
+    session.add(
+        _make_job(company="Google", location="Tokyo", external_job_id="1", title="A")
+    )
+    session.add(
+        _make_job(company="Meta", location="Tokyo", external_job_id="2", title="B")
+    )
+    session.add(
+        _make_job(company="Google", location="Osaka", external_job_id="3", title="C")
+    )
     session.commit()
 
-    rows = repo.list(
-        session, limit=10, offset=0, company="Google", location="Tokyo"
-    )
+    rows = repo.list(session, limit=10, offset=0, company="Google", location="Tokyo")
     assert [r.title for r in rows] == ["A"]
 
 
@@ -185,7 +191,9 @@ def test_count_with_and_without_filters(
     monkeypatch.setattr(engine_mod, "engine", session.get_bind())
     repo = JobRepository()
     session.add(
-        _make_job(source="google_careers", external_job_id="1", title="Software Engineer")
+        _make_job(
+            source="google_careers", external_job_id="1", title="Software Engineer"
+        )
     )
     session.add(
         _make_job(source="google_careers", external_job_id="2", title="Data Analyst")
