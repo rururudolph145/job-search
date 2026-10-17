@@ -68,3 +68,23 @@ def test_list_jobs_q_case_insensitive_substring(client: TestClient) -> None:
     resp = client.get("/jobs", params={"q": "SOFTWARE"})
     body = resp.json()
     assert [item["title"] for item in body["items"]] == ["Software Engineer"]
+
+
+def test_list_empty_returns_zero_envelope(client: TestClient) -> None:
+    resp = client.get("/jobs", params={"source": "nonexistent"})
+    assert resp.status_code == 200
+    assert resp.json() == {"items": [], "total": 0}
+
+
+def test_list_total_reflects_filters(client: TestClient) -> None:
+    # q="software" matches 1 row, but total must be 1 (not the 2-row table total).
+    resp = client.get("/jobs", params={"q": "software"})
+    body = resp.json()
+    assert body["total"] == 1
+    assert len(body["items"]) == 1
+
+
+def test_list_limit_bounds(client: TestClient) -> None:
+    assert client.get("/jobs", params={"limit": "0"}).status_code == 422
+    assert client.get("/jobs", params={"limit": "101"}).status_code == 422
+    assert client.get("/jobs", params={"offset": "-1"}).status_code == 422

@@ -478,7 +478,7 @@ git commit -m "feat(jobs): add GET /jobs list endpoint with filters + envelope"
 **Interfaces:**
 - Consumes: `list_jobs` endpoint (Task 3).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `backend/tests/test_routes_jobs.py`:
 
@@ -503,26 +503,30 @@ def test_list_limit_bounds(client: TestClient) -> None:
     assert client.get("/jobs", params={"offset": "-1"}).status_code == 422
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_routes_jobs.py -v` (from repo root)
 Expected: PASS on `test_list_empty_returns_zero_envelope` and `test_list_total_reflects_filters` (already correct count is `or 0`; filters already applied to count), but FAIL on `test_list_limit_bounds` if the `Query(ge=1, le=100)` constraints are not yet present. If the endpoint was already written with those constraints in Task 3, all three pass — in that case this task's "fail" gate is already satisfied and you proceed to commit. The point of this task is that these three inputs are *pinned by explicit tests*; do not skip them.
 
-- [ ] **Step 3: Implement only what is missing**
+- [x] **Step 3: Implement only what is missing**
 
 If `test_list_limit_bounds` failed, the `Query(ge=1, le=100)` / `Query(ge=0)` bounds on `list_jobs` (Task 3) are missing — add/ensure them. Otherwise no code change is needed.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_routes_jobs.py -v` (from repo root)
 Expected: PASS (6 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/tests/test_routes_jobs.py
 git commit -m "test(jobs): pin empty-list, total-filter, and limit-bound behavior"
 ```
+
+---
+
+**Implemented 2026-10-17:** all 3 tests passed against the Task 3 code immediately (the plan anticipated this). Discriminating power verified by mutation: dropping the count filters fails `test_list_total_reflects_filters` + `test_list_empty_returns_zero_envelope`; removing `le=100` fails `test_list_limit_bounds`; returning `{}` for an empty list fails `test_list_empty_returns_zero_envelope`; making `q` exact fails `test_list_jobs_q_case_insensitive_substring`.
 
 ---
 
