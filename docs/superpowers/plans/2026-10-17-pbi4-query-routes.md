@@ -41,7 +41,7 @@ These are the input classes and failure modes the spec implies but no happy-path
 - Consumes: `JobResponse` (already in `shared/jobsearch_shared/schemas.py`).
 - Produces: `JobListResponse` with fields `items: list[JobResponse]`, `total: int`; re-exported from `app.schemas`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `shared/tests/test_job_response.py`:
 
@@ -86,12 +86,12 @@ def test_job_list_response_roundtrip() -> None:
 (Update the import at the top of the file from
 `from jobsearch_shared.schemas import JobResponse` to import both names.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run --package jobsearch-shared pytest shared/tests/test_job_response.py -v` (from repo root)
 Expected: FAIL with `ImportError: cannot import name 'JobListResponse'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Append to `shared/jobsearch_shared/schemas.py`:
 
@@ -101,7 +101,7 @@ class JobListResponse(BaseModel):
     total: int
 ```
 
-- [ ] **Step 4: Modify re-export**
+- [x] **Step 4: Modify re-export**
 
 In `backend/app/schemas/__init__.py`, change the import and `__all__` to include `JobListResponse`:
 
@@ -111,7 +111,7 @@ from jobsearch_shared.schemas import HealthResponse, JobListResponse, JobRespons
 __all__ = ["HealthResponse", "JobListResponse", "JobResponse"]
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `uv run --package jobsearch-shared pytest shared/tests/test_job_response.py -v`
 Expected: PASS (4 tests).

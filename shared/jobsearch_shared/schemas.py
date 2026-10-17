@@ -21,3 +21,8 @@ class JobResponse(BaseModel):
     first_seen_at: datetime
     last_seen_at: datetime
     updated_at: datetime
+
+
+class JobListResponse(BaseModel):
+    items: list[JobResponse]
+    total: int
