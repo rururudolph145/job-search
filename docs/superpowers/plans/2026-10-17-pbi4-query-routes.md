@@ -540,7 +540,7 @@ git commit -m "test(jobs): pin empty-list, total-filter, and limit-bound behavio
 - Consumes: `JobRepository.get` (exists since PBI 1), `JobResponse` (Task 1).
 - Produces: `get_job(job_id, ...)` handler on the same router.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `backend/tests/test_routes_jobs.py`:
 
@@ -561,12 +561,12 @@ def test_get_job_not_found(client: TestClient) -> None:
     assert resp.json() == {"detail": "Job not found"}
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_routes_jobs.py -v` (from repo root)
 Expected: FAIL — `GET /jobs/{job_id}` returns `404` (or `405`) with no `get_job` handler defined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `backend/app/api/routes/jobs.py`, make two edits:
 
@@ -609,17 +609,21 @@ async def get_job(
     return job
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run --package jobsearch-backend pytest backend/tests/test_routes_jobs.py -v` (from repo root)
 Expected: PASS (8 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/api/routes/jobs.py backend/tests/test_routes_jobs.py
 git commit -m "feat(jobs): add GET /jobs/{job_id} detail endpoint"
 ```
+
+---
+
+**Implemented 2026-10-17:** uses `Depends(get_db)` (see Task 3 note) and returns `JobResponse.model_validate(job)` for mypy strictness — FastAPI's `response_model` would have converted it either way, matching Task 3's pattern.
 
 ---
 

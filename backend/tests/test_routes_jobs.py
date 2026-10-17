@@ -88,3 +88,19 @@ def test_list_limit_bounds(client: TestClient) -> None:
     assert client.get("/jobs", params={"limit": "0"}).status_code == 422
     assert client.get("/jobs", params={"limit": "101"}).status_code == 422
     assert client.get("/jobs", params={"offset": "-1"}).status_code == 422
+
+
+def test_get_job_returns_row(client: TestClient) -> None:
+    # First find an existing id via the list endpoint.
+    listings = client.get("/jobs").json()
+    some_id = listings["items"][0]["id"]
+
+    resp = client.get(f"/jobs/{some_id}")
+    assert resp.status_code == 200
+    assert resp.json()["id"] == some_id
+
+
+def test_get_job_not_found(client: TestClient) -> None:
+    resp = client.get("/jobs/999999999")
+    assert resp.status_code == 404
+    assert resp.json() == {"detail": "Job not found"}

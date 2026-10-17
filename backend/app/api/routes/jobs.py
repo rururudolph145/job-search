@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.engine import get_db
@@ -37,3 +37,15 @@ async def list_jobs(
     total = repo.count(session, source=source, company=company, location=location, q=q)
     items = [JobResponse.model_validate(job) for job in jobs]
     return JobListResponse(items=items, total=total)
+
+
+@router.get("/{job_id}", response_model=JobResponse)
+async def get_job(
+    job_id: int,
+    session: Annotated[Session, Depends(get_db)],
+    repo: Annotated[JobRepository, Depends(_get_repo)],
+) -> JobResponse:
+    job = repo.get(session, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return JobResponse.model_validate(job)
