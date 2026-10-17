@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.ingestion.sources.base import JobSource
@@ -57,8 +58,28 @@ class IngestionService:
                         first_seen_at=now,
                         last_seen_at=now,
                     )
-                    self.repository.add(session, job)
-                    created += 1
+                    try:
+                        self.repository.add(session, job)
+                        created += 1
+                    except IntegrityError:
+                        # A concurrent writer (or an in-run duplicate already
+                        # flushed) beat us to this identity. Roll back the
+                        # poisoned insert, re-read, and count it as `seen`.
+                        # This requires the flush in `add` (which it has) so the
+                        # constraint is evaluated per-draft, not at commit.
+                        session.rollback()
+                        existing = self.repository.find_by_external_id(
+                            session,
+                            source=self.source.name,
+                            external_job_id=draft.external_job_id,
+                        )
+                        if existing is not None:
+                            existing.last_seen_at = now
+                            seen += 1
+                        else:
+                            # Re-insert failed to find a row we can bump; surface
+                            # rather than silently drop the draft.
+                            raise
             session.commit()
         except BaseException:
             session.rollback()

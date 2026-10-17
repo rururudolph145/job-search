@@ -9,6 +9,12 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
 from app.ingestion.drafts import JobDraft
+from app.ingestion.normalize import (
+    normalize_company,
+    normalize_external_id,
+    normalize_location,
+    normalize_title,
+)
 from app.ingestion.spiders.google_careers import GoogleCareersSpider
 
 
@@ -28,15 +34,20 @@ class GoogleCareersSource:
     def fetch(self) -> Iterator[JobDraft]:
         spider = GoogleCareersSpider()
         for raw in self._run_crawl(spider):
-            external_job_id = (raw.get("external_job_id") or "").strip()
+            external_job_id = normalize_external_id(raw.get("external_job_id") or "")
             if not external_job_id:
+                # Id-less page: un-parseable for this source. This is a hard-coded
+                # policy at the source layer — see spec §4.3 (id-less jobs gap).
+                # `jobs.external_job_id` is nullable and the PBI-3 partial index
+                # exists precisely for that case, but no source yet produces a
+                # legitimately id-less job, so this guard drops the dict entirely.
                 self.skipped_no_id += 1
                 continue
             draft = JobDraft(
                 external_job_id=external_job_id,
-                title=raw.get("title") or "",
-                location=raw.get("location"),
-                company=raw.get("company"),
+                title=normalize_title(raw.get("title") or ""),
+                location=normalize_location(raw.get("location")),
+                company=normalize_company(raw.get("company")),
                 url=raw.get("url") or "",
             )
             yield draft

@@ -5,7 +5,7 @@ import pytest
 from app.ingestion.drafts import JobDraft
 from app.ingestion.service import IngestionService
 from app.models import Base, Job
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session
 
 
@@ -146,3 +146,62 @@ def test_source_error_propagates(session_factory: Callable[[], Session]) -> None
     )
     with pytest.raises(RuntimeError):
         service.run()
+
+
+def _race_session_factory(
+    raise_on_insert_id: str,
+) -> Callable[[], Session]:
+    """Session factory whose write path loses a race for ``raise_on_insert_id``.
+
+    The engine is SQLite ``:memory:``, so every session shares one connection.
+    When the loser's ORM ``INSERT`` for ``raise_on_insert_id`` executes (at
+    ``flush``), the winning row is committed from a side connection and the
+    insert is rejected by the unique index — exactly the concurrent-writer
+    outcome the service must absorb.
+    """
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    armed = True
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def _competitor(
+        conn: object,
+        cursor: object,
+        statement: str,
+        parameters: object,
+        context: object,
+        executemany: bool,
+    ) -> None:
+        nonlocal armed
+        if not armed or not statement.startswith("INSERT INTO jobs "):
+            return
+        if raise_on_insert_id not in (parameters or ()):
+            return
+        armed = False  # the winner's own insert must not re-trigger this hook
+        with engine.connect() as winner:
+            winner.execute(
+                Job.__table__.insert().values(
+                    source="test_source",
+                    external_job_id=raise_on_insert_id,
+                    title="Winner",
+                )
+            )
+            winner.commit()
+
+    def factory() -> Session:
+        return Session(engine)
+
+    return factory
+
+
+def test_lost_insert_race_counts_seen_not_crash() -> None:
+    service = IngestionService(
+        FakeSource([_draft("123")]),
+        _race_session_factory("123"),
+        now_provider=lambda: FIXED_NOW,
+    )
+
+    result = service.run()
+
+    assert result.created == 0
+    assert result.seen == 1
