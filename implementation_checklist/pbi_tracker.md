@@ -21,7 +21,7 @@
 - [x] **PBI 4 — Query routes**
   - List/detail/filter endpoints for jobs.
   - Depends on: PBI 1, 3
-- [ ] **PBI 5 — Jobs dashboard page**
+- [x] **PBI 5 — Jobs dashboard page**
   - Browse, filter, and open job details.
   - Depends on: PBI 4
 
