@@ -18,7 +18,7 @@
 - [x] **PBI 3 — Normalization + dedup keys**
   - Unique `(source, external_job_id)` identity via a partial unique index; field normalization at the ingest boundary. (Cross-ATS matching deferred — one source today.)
   - Depends on: PBI 1
-- [ ] **PBI 4 — Query routes**
+- [x] **PBI 4 — Query routes**
   - List/detail/filter endpoints for jobs.
   - Depends on: PBI 1, 3
 - [ ] **PBI 5 — Jobs dashboard page**

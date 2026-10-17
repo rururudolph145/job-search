@@ -635,7 +635,7 @@ git commit -m "feat(jobs): add GET /jobs/{job_id} detail endpoint"
 **Interfaces:**
 - Consumes: all prior tasks.
 
-- [ ] **Step 1: Run the full test suite**
+- [x] **Step 1: Run the full test suite**
 
 Run (from repo root):
 ```bash
@@ -643,17 +643,17 @@ make test
 ```
 Expected: all `backend/tests` and `shared/tests` pass.
 
-- [ ] **Step 2: Lint**
+- [x] **Step 2: Lint**
 
 Run: `make lint`
 Expected: clean.
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `make typecheck`
 Expected: clean under mypy strict.
 
-- [ ] **Step 4: Tick PBI 4 in the tracker**
+- [x] **Step 4: Tick PBI 4 in the tracker**
 
 In `implementation_checklist/pbi_tracker.md`, change:
 
@@ -669,12 +669,16 @@ to:
 
 Also reconcile PBI 1's checkbox (still `[x]` from PBI 1's own work — leave as-is; the "carried forward" note in the PBI 3 spec §10 documents that PBI 1's line remained unticked at one point, but the tracker now shows PBI 1–3 `[x]`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add implementation_checklist/pbi_tracker.md
 git commit -m "docs(pbi4): tick PBI 4 query routes complete"
 ```
+
+---
+
+**Verified 2026-10-17:** `make test` 64 passed / 4 deselected; `make lint` clean; `make typecheck` clean (29 files).
 
 ---
 
