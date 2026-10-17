@@ -3,6 +3,7 @@ from app.db import engine as engine_mod
 from app.models import Base, Job
 from app.repositories.job import JobRepository
 from sqlalchemy import create_engine, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 
@@ -85,24 +86,6 @@ def test_find_by_external_id_returns_match(
     assert found.id == job_id
 
 
-def test_find_by_external_id_returns_first_when_duplicated(
-    session: Session, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # (source, external_job_id) is non-unique by design (dedup is PBI 3):
-    # a second insert of the same external id must succeed, and the lookup
-    # must return a row rather than erroring.
-    monkeypatch.setattr(engine_mod, "engine", session.get_bind())
-    repo = JobRepository()
-    session.add(_make_job(title="Job A"))
-    session.add(_make_job(title="Job B"))
-    session.commit()
-
-    found = repo.find_by_external_id(
-        session, source="google_careers", external_job_id="123"
-    )
-    assert found is not None
-
-
 def test_list_applies_limit_offset(
     session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -115,3 +98,42 @@ def test_list_applies_limit_offset(
     page = repo.list(session, limit=2, offset=1)
     assert [j.title for j in page] == ["Job 1", "Job 2"]
     assert repo.list(session, limit=0, offset=0) == []
+
+
+def test_duplicate_source_external_id_raises(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(engine_mod, "engine", session.get_bind())
+    session.add(_make_job(title="Job A"))
+    session.commit()
+
+    with pytest.raises(IntegrityError):
+        session.add(_make_job(title="Job B"))
+        session.commit()
+
+
+def test_two_null_external_ids_coexist(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The partial index governs only rows that carry a provider id; two id-less
+    # rows must both persist (multiple NULLs are always allowed).
+    monkeypatch.setattr(engine_mod, "engine", session.get_bind())
+    session.add(_make_job(external_job_id=None, title="No id A"))
+    session.add(_make_job(external_job_id=None, title="No id B"))
+    session.commit()
+
+    rows = list(session.scalars(select(Job)))
+    assert len(rows) == 2
+
+
+def test_same_id_different_source_coexists(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Provider ids are unique only within a source; two ATSs may both emit `123`.
+    monkeypatch.setattr(engine_mod, "engine", session.get_bind())
+    session.add(_make_job(source="google_careers", title="Google job"))
+    session.add(_make_job(source="linkedin", title="LinkedIn job"))
+    session.commit()
+
+    rows = list(session.scalars(select(Job)))
+    assert len(rows) == 2
