@@ -284,3 +284,25 @@ async def test_passes_requests_whose_scope_is_populated_during_iteration() -> No
         f"https://careers.google.com/jobs/results/{i}-software-engineer/"
         for i in range(3)
     ]
+
+
+async def test_passes_non_request_items_through_untouched() -> None:
+    """Item dicts share the hook with requests and must not be scope-checked.
+
+    ``parse_job`` yields plain dicts, and Scrapy feeds every spider-output item
+    through ``process_spider_output``. Checking ``item.url`` raised
+    ``AttributeError``; Scrapy downgraded that to a spider error, so every crawl
+    reported success with zero items.
+    """
+    spider = FakeSpider()
+    spider.allowed_sitemap_urls = {"https://careers.google.com/jobs/results/1-a/"}
+    mw = PolicyGuardMiddleware()
+    item = {"title": "SWE", "location": "Tokyo", "external_job_id": "1"}
+
+    async def stream() -> AsyncIterable[object]:
+        yield _request("https://careers.google.com/jobs/results/1-a/")
+        yield item
+
+    passed = [x async for x in mw.process_spider_output(_response(), stream(), spider)]
+    assert passed[0].url == "https://careers.google.com/jobs/results/1-a/"
+    assert passed[1] is item

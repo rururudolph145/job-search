@@ -33,18 +33,24 @@ class PolicyGuardMiddleware:
     async def process_spider_output(
         self,
         response: scrapy.http.Response,
-        result: AsyncIterable[scrapy.Request],
+        result: AsyncIterable[scrapy.Request | dict[str, object]],
         spider: scrapy.Spider,
-    ) -> AsyncIterator[scrapy.Request]:
+    ) -> AsyncIterator[scrapy.Request | dict[str, object]]:
         # Snapshot on the first item, not before the loop. ``result`` is the spider
         # callback's unconsumed generator: ``parse`` has not run yet when this method
         # is entered, so a snapshot taken there sees the empty set ``parse`` assigns
-        # on entry and rejects every request (the live crawl died after two requests).
-        # ``parse`` fills the whole set before its first yield, so the first item is
-        # already backed by the complete scope. Taken once, as before, so a scope
-        # mutation mid-stream cannot leak into a partially-checked crawl.
+        # on entry and rejects every request (the live crawl died after two requests;
+        # ``parse``'s own collect-then-yield keeps that set complete by first yield).
+        # Taken once, as before, so a scope mutation mid-stream cannot leak into a
+        # partially-checked crawl.
         allowed: set[str] | None = None
         async for request in result:
+            # ``parse_job`` yields plain dicts, and Scrapy feeds every spider-output
+            # item through this hook. Only requests carry a URL to scope-check; items
+            # pass straight through, as they did before the guard existed.
+            if not isinstance(request, scrapy.Request):
+                yield request
+                continue
             if allowed is None:
                 allowed = set(getattr(spider, "allowed_sitemap_urls", set()))
                 allowed.update(spider.start_urls)
