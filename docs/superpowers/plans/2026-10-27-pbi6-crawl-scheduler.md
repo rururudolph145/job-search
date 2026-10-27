@@ -275,7 +275,7 @@ git commit -m "feat(pbi6): add CrawlRunRepository (start/finish/fail/record_skip
 - Consumes: SQLAlchemy `Session` and its bound dialect.
 - Produces: `LOCK_KEY = 0x4A53_0006` (a documented constant) and a `@contextmanager` `ingestion_lock(session: Session) -> Iterator[bool]` yielding `True` when the lock is held. On Postgres it issues `pg_try_advisory_lock(LOCK_KEY)`; when acquired it yields `True` and runs `pg_advisory_unlock(LOCK_KEY)` in `finally`. On any other dialect (SQLite) it yields `True` immediately with no acquisition. It must never release a lock it did not acquire.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `backend/tests/test_locking.py`:
 
@@ -305,21 +305,21 @@ def test_lock_key_is_fixed() -> None:
     assert LOCK_KEY == 0x4A53_0006
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest backend/tests/test_locking.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.ingestion.locking'`.
 
-- [ ] **Step 3: Implement `ingestion_lock`**
+- [x] **Step 3: Implement `ingestion_lock`**
 
 The Postgres branch runs `session.execute(text("SELECT pg_try_advisory_lock(:key)"), {"key": LOCK_KEY})` and, only when the returned boolean is `True`, runs `session.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": LOCK_KEY})` in `finally`. Dialect dispatch is `session.get_bind().dialect.name == "postgresql"`. Ensure mypy-strict passes (the contextmanager yields `bool`; the `finally` runs inside the generator's `try`).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest backend/tests/test_locking.py -v`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/ingestion/locking.py backend/tests/test_locking.py
