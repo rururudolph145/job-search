@@ -344,7 +344,7 @@ git commit -m "feat(pbi6): add ingestion advisory lock contextmanager"
   - `registrable_host(url: str) -> str` — two-label suffix of the URL's host (`www.google.com` → `google.com`).
   - `budget_for(url: str) -> RateBudget` — looks up `BUDGETS[registrable_host(url)]`; raises `UnconfiguredHostError` for unknown hosts.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `backend/tests/test_policy.py`:
 
@@ -380,21 +380,21 @@ def test_google_budget_values_are_pinned() -> None:
     assert GOOGLE_BUDGET.autothrottle_max_delay == 30.0
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest backend/tests/test_policy.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.ingestion.policy'`.
 
-- [ ] **Step 3: Implement `backend/app/ingestion/policy.py`**
+- [x] **Step 3: Implement `backend/app/ingestion/policy.py`**
 
 `registrable_host` parses with `urlsplit(url).netloc` (strip a `www.` prefix, then take the last two labels separated by `.`). Docstrings name the public-suffix-list as the upgrade path for multi-label suffixes (per spec §6.2).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest backend/tests/test_policy.py -v`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/ingestion/policy.py backend/tests/test_policy.py
