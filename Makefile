@@ -15,8 +15,9 @@ migrate:
 dev:
 	uv run --package jobsearch-backend uvicorn app.main:app --reload
 
+# TRIGGER=cron|manual (default manual); cron runs `make ingest TRIGGER=cron`.
 ingest:
-	uv run --package jobsearch-backend python -m app.ingest
+	uv run --package jobsearch-backend python -m app.ingest --trigger $(or $(TRIGGER),manual)
 
 lint:
 	uv run ruff check . && uv run ruff format --check .

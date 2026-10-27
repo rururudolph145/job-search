@@ -760,7 +760,7 @@ git commit -m "feat(pbi6): IngestionService.run accepts an optional shared sessi
   - `main(argv)` parses `--trigger {cron,manual}` (default `manual`); `--limit` is removed.
   - `Makefile` `ingest` target: `uv run --package jobsearch-backend python -m app.ingest --trigger $(or $(TRIGGER),manual)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Rewrite `backend/tests/test_ingest_cli.py` in full. It keeps the existing seams (`build_source`, `make_engine`) but now backends the CLI with `IngestRun`. Tests:
 - **success** (`exit 0`, prints `created=1 seen=0 skipped_no_id=0`) — a `FakeSource` yielding one draft, an in-memory SQLite engine patched into `make_engine`, and `trigger` defaults to `manual`.
@@ -785,21 +785,21 @@ def test_cadence_is_valid_and_daily() -> None:
 
 (If `croniter` requires a start time, use `datetime(2026, 1, 1, tzinfo=timezone.utc)` and assert the two returned datetimes are 24h apart.)
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest backend/tests/test_ingest_cli.py backend/tests/test_cron_schedule.py -v`
 Expected: FAIL — `test_cron_schedule.py`: `ModuleNotFoundError: No module named 'croniter'`; `test_ingest_cli.py`: signatures/types fail against the current `run_ingestion(limit)`.
 
-- [ ] **Step 3: Add `croniter` and implement**
+- [x] **Step 3: Add `croniter` and implement**
 
 Add `"croniter>=1.8"` to `backend/pyproject.toml` `dependencies` and run `make sync`. Create `backend/app/ingestion/schedule.py`. Rewrite `backend/app/ingest.py`: keep `build_source()`; `run_ingestion(*, trigger: str = "manual") -> int` opens the engine, builds `IngestRun`, runs, prints per outcome, returns `exit_code`. Update `Makefile`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest backend/tests/test_ingest_cli.py backend/tests/test_cron_schedule.py -v`
 Expected: PASS (all tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/pyproject.toml backend/app/ingestion/schedule.py backend/app/ingest.py Makefile backend/tests/test_ingest_cli.py backend/tests/test_cron_schedule.py
