@@ -29,7 +29,7 @@
 
 > Goal: make the crawler reliable, efficient, and correct — the engineering that carries the portfolio narrative.
 
-- [ ] **PBI 6 — Crawl scheduler**
+- [x] **PBI 6 — Crawl scheduler**
   - Crawl scheduling + per-host rate limits + robots.txt/policy compliance.
   - Depends on: PBI 2
 - [ ] **PBI 7 — Failure recovery**
