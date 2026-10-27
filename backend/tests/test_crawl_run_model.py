@@ -1,6 +1,5 @@
-from sqlalchemy import create_engine, inspect
-
 from app.models import Base
+from sqlalchemy import create_engine, inspect
 
 
 def test_crawl_runs_table_has_expected_columns() -> None:

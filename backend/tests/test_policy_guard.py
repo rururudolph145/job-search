@@ -1,13 +1,13 @@
 import pytest
 import scrapy
-from scrapy.exceptions import IgnoreRequest
-
 from app.ingestion.middleware import PolicyGuardMiddleware, PolicyViolation
+from scrapy.exceptions import IgnoreRequest
 
 
 class FakeSpider(scrapy.Spider):
     name = "fake"
     start_urls = ["https://careers.google.com/jobs/sitemap"]
+    allowed_sitemap_urls: set[str]
 
 
 def _request(url: str) -> scrapy.Request:
@@ -15,7 +15,9 @@ def _request(url: str) -> scrapy.Request:
 
 
 def _response() -> scrapy.http.HtmlResponse:
-    return scrapy.http.HtmlResponse(url="https://careers.google.com/jobs/sitemap", body=b"")
+    return scrapy.http.HtmlResponse(
+        url="https://careers.google.com/jobs/sitemap", body=b""
+    )
 
 
 def test_passes_sitemap_member_urls() -> None:

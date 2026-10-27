@@ -22,9 +22,7 @@ def build_scrapy_settings(
         "ITEM_PIPELINES": {
             "app.ingestion.sources.google_careers._CrawlItemsPipeline": 1
         },
-        "SPIDER_MIDDLEWARES": {
-            "app.ingestion.middleware.PolicyGuardMiddleware": 543
-        },
+        "SPIDER_MIDDLEWARES": {"app.ingestion.middleware.PolicyGuardMiddleware": 543},
         # PBI 2 disabled logging entirely when not verbose; preserved exactly.
         "LOG_ENABLED": verbose,
         "LOG_LEVEL": "INFO" if verbose else "DEBUG",

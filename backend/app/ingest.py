@@ -9,7 +9,6 @@ import argparse
 import sys
 from collections.abc import Sequence
 
-from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from app.db.engine import make_engine

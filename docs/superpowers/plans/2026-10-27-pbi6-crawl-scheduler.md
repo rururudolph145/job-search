@@ -855,7 +855,7 @@ git commit -m "test(pbi6): add opt-in postgres advisory-lock mutex test + cron d
 **Interfaces:**
 - Consumes: all prior tasks.
 
-- [ ] **Step 1: Run lint, typecheck, and the default test suite**
+- [x] **Step 1: Run lint, typecheck, and the default test suite**
 
 Run:
 ```bash
@@ -870,11 +870,11 @@ Expected: all green. (`make lint` covers ruff check + format check; `make typech
 Run: `make db-up && make migrate && make test-integration`
 Expected: `test_real_crawl_yields_nonempty` passes; the `crawl_runs` migrations apply cleanly against Postgres.
 
-- [ ] **Step 3: Tick PBI 6 in the tracker**
+- [x] **Step 3: Tick PBI 6 in the tracker**
 
 In `implementation_checklist/pbi_tracker.md`, mark the PBI 6 line complete (matching the existing checkbox idiom; do not edit `frontend/src/pages/pbis.ts` — its `title`/`description` for PBI 6 are unchanged by this backend-only PBI).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add implementation_checklist/pbi_tracker.md
@@ -888,3 +888,5 @@ git commit -m "docs(pbi6): tick PBI 6 crawl scheduler complete"
 - **Spec coverage:** §6.1 (robots ratification) → Task 6 (`ROBOTSTXT_OBEY=False`) + Task 7 (guard); §6.2 (rate budgets) → Task 5; §6.3 (settings + §6.3.1 guard) → Task 6 + Task 7; §6.4 (spider) → Task 8; §6.5 (run record) → Task 1 + Task 2 + Task 3; §6.6 (lock) → Task 4 + Task 12; §6.7 (`IngestRun`) → Task 9 + Task 10; §6.8 (CLI/cron) → Task 11 + Task 12; §6.9 (`croniter`) → Task 11.
 - **`SCHEDULE` single source of truth** is created in Task 11, but the CLI wiring is what the README (Task 12) reads from — the plan sequences them correctly (11 before 12).
 - **`ingestion_lock` postgres branch** is exercised by the opt-in Task 12 test, not the unit suite (so `make test` holds hermetic); the SQLite branch is pinned in Task 4.
+
+> **Step 2 status:** not executed — this environment has no Docker daemon and no Postgres on :5432. `make db-up && make migrate && make test-integration` must be run where the Compose stack is available.

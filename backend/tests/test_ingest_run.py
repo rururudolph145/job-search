@@ -3,10 +3,11 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 
 import app.ingestion.run as run_module
+from _pytest.monkeypatch import MonkeyPatch
 from app.ingestion.drafts import JobDraft
 from app.ingestion.run import IngestRun, RunOutcome
+from app.ingestion.sources.base import JobSource
 from app.models import Base, CrawlRun, Job
-from _pytest.monkeypatch import MonkeyPatch
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session
 
@@ -61,6 +62,7 @@ def _engine() -> Engine:
 def _factory(engine: Engine) -> Callable[[], Session]:
     def make() -> Session:
         return Session(engine)
+
     return make
 
 
@@ -74,8 +76,8 @@ def _jobs(engine: Engine) -> list[Job]:
         return list(s.scalars(select(Job)))
 
 
-def _run(source: object, engine: Engine, trigger: str = "cron") -> RunOutcome:
-    return IngestRun(  # type: ignore[arg-type]
+def _run(source: JobSource, engine: Engine, trigger: str = "cron") -> RunOutcome:
+    return IngestRun(
         source, _factory(engine), trigger, now_provider=lambda: FIXED_NOW
     ).run()
 

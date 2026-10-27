@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 import croniter
-
 from app.ingestion.schedule import SCHEDULE
 
 DAY_SECONDS = 86400

@@ -1,5 +1,4 @@
 import pytest
-
 from app.ingestion.policy import (
     GOOGLE_BUDGET,
     UnconfiguredHostError,

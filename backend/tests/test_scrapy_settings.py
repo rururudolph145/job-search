@@ -1,5 +1,4 @@
 import pytest
-
 from app.ingestion.policy import UnconfiguredHostError
 from app.ingestion.scrapy_settings import build_scrapy_settings
 

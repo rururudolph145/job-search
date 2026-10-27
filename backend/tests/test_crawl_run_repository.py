@@ -1,12 +1,12 @@
+from collections.abc import Iterator
 from datetime import datetime, timezone
 
 import pytest
-from sqlalchemy import Engine, create_engine, select
-from sqlalchemy.orm import Session
-
 from app.ingestion.service import IngestionResult
 from app.models import Base, CrawlRun
 from app.repositories.crawl_run import CrawlRunRepository
+from sqlalchemy import Engine, create_engine, select
+from sqlalchemy.orm import Session
 
 FIXED_NOW = datetime(2026, 10, 27, 6, 17, 0, tzinfo=timezone.utc)
 FINISHED_NOW = datetime(2026, 10, 27, 6, 19, 0, tzinfo=timezone.utc)
@@ -20,7 +20,7 @@ def engine() -> Engine:
 
 
 @pytest.fixture()
-def session(engine: Engine) -> Session:
+def session(engine: Engine) -> Iterator[Session]:
     with Session(engine) as s:
         yield s
 
