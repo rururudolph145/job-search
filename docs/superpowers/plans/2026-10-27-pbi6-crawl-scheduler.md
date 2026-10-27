@@ -643,10 +643,19 @@ git commit -m "feat(pbi6): spider records allowed_sitemap_urls for the policy gu
 - Test: `backend/tests/test_ingest_run.py` (new)
 
 **Interfaces:**
+> **Implementation note (deviation from spec §6.7):** the `running` row is
+> `session.commit()`-ed **before** the crawl starts, not left pending. The spec
+> body's failure path calls `session.rollback()` before `fail()`; rolling back a
+> pending insert discards the row itself (and ORM rollback *deletes* — not merely
+> detaches — the flushed row), so the `failed` row never persisted. Committing
+> first also makes review focus 1 literally true: a process killed mid-crawl
+> leaves a committed `running` row with `finished_at IS NULL`. Pinned by
+> `test_running_row_is_committed_before_the_crawl_starts`.
+
 - Consumes: `ingestion_lock` (Task 4), `CrawlRunRepository` (Task 3), `IngestionService` + `IngestionResult` (existing `app.ingestion.service`), `JobSource` (existing `app.ingestion.sources.base`).
 - Produces: `@dataclass(frozen=True, slots=True) RunOutcome(exit_code: int, result: IngestionResult | None, error: str | None, skipped_locked: bool)` and `@dataclass(frozen=True) IngestRun(source: JobSource, session_factory: Callable[[], Session], trigger: str, now_provider: Callable[[], datetime] | None = None)` with `run(self) -> RunOutcome`. The `run()` body follows the spec §6.7 verbatim ordering (lock → skipped/start → service → finish/fail → commit; `finally: session.close()`; `BaseException` handler with rollback + `fail`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `backend/tests/test_ingest_run.py`. Use a shared in-memory engine behind `session_factory`, a `FakeSource` (one that yields a `JobDraft` and records whether `fetch` ran), and a fixed `now_provider`.
 
@@ -658,21 +667,21 @@ Key cases:
 
 Use `from datetime import datetime, timezone`, `FIXED_NOW = datetime(2026, 10, 27, 6, 17, 0, tzinfo=timezone.utc)`, and compare stored timestamps to `FIXED_NOW.replace(tzinfo=None)`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest backend/tests/test_ingest_run.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.ingestion.run'`.
 
-- [ ] **Step 3: Implement `IngestRun`**
+- [x] **Step 3: Implement `IngestRun`**
 
 Transcribe the spec §6.7 body exactly: one `session = self.session_factory()`; `now = self._now()`; the `try/with/finally` ordering; `IngestionService(self.source, lambda: session, now_provider=lambda: now).run(session=session)`. On caught `BaseException`, `session.rollback()`, format `error = f"{type(exc).__name__}: {exc}"`, `crawl_runs.fail(...)`, `session.commit()`, return `RunOutcome(1, None, error, skipped_locked=False)`. Add the `# noqa: BLE001` where the bare `except` is.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest backend/tests/test_ingest_run.py -v`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/ingestion/run.py backend/tests/test_ingest_run.py
