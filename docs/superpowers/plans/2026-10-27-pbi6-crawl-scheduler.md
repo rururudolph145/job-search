@@ -505,7 +505,7 @@ git commit -m "feat(pbi6): add scrapy settings module and rewire _make_process"
 - Consumes: Scrapy (`scrapy.http.Response`, `scrapy.Request`, `scrapy.Spider`), `collections.abc.Iterable`.
 - Produces: `class PolicyViolation(Exception)` and `class PolicyGuardMiddleware` (a Scrapy *spider* middleware) with a fully-annotated `process_spider_output(self, response: scrapy.http.Response, result: Iterable[scrapy.Request], spider: scrapy.Spider) -> Iterable[scrapy.Request]`. It iterates `result`; for each `Request`, if `request.url` is not in `{*spider.allowed_sitemap_urls, spider.start_urls[0]}` it raises `PolicyViolation`, else yields it unchanged. It is registered by dotted path from `scrapy_settings.py` (Task 6), not imported by any pure module.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `backend/tests/test_policy_guard.py`:
 
@@ -557,21 +557,21 @@ def test_raises_on_non_member_url() -> None:
         )
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest backend/tests/test_policy_guard.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.ingestion.middleware'`.
 
-- [ ] **Step 3: Implement `PolicyGuardMiddleware`**
+- [x] **Step 3: Implement `PolicyGuardMiddleware`**
 
 Fully annotate for mypy strict. The permitted set is computed once per call (`allowed = spider.allowed_sitemap_urls | {spider.start_urls[0]}`); for each request check membership and raise `PolicyViolation(f"...{request.url}...")` on the first non-member. Raise `PolicyViolation`, never `IgnoreRequest` (the latter silently drops — the forbidden behavior).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest backend/tests/test_policy_guard.py -v`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/ingestion/middleware.py backend/tests/test_policy_guard.py
