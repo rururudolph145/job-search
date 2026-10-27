@@ -52,13 +52,22 @@ class GoogleCareersSpider(scrapy.Spider):
     def parse(self, response: scrapy.http.Response) -> Iterator[scrapy.Request]:
         # The sitemap uses a default namespace (xmlns), so match element names by
         # local-name() rather than a bare //loc XPath.
+        #
+        # Collect first, then yield: Scrapy adapts this sync generator into the
+        # async middleware chain, which suspends it between items. Yielding as we
+        # go let PolicyGuardMiddleware validate a request before its URL was in
+        # allowed_sitemap_urls. Building both fully first restores the invariant.
+        # Assigned (not updated) so a re-parse cannot inherit stale entries.
+        self.allowed_sitemap_urls = set()
+        requests: list[scrapy.Request] = []
         for url in response.xpath(".//*[local-name()='loc']/text()").getall():
             url = str(url).strip()
             if ROLE_PATTERN.search(url):
                 self.allowed_sitemap_urls.add(url)
-                yield scrapy.Request(
-                    url, callback=self.parse_job, meta={"job_url": url}
+                requests.append(
+                    scrapy.Request(url, callback=self.parse_job, meta={"job_url": url})
                 )
+        yield from requests
 
     def parse_job(
         self, response: scrapy.http.Response

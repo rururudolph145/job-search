@@ -98,3 +98,23 @@ def test_find_location_returns_first_tokyo_term() -> None:
 
 def test_spider_is_scrapy_spider() -> None:
     assert isinstance(GoogleCareersSpider(), scrapy.Spider)
+
+
+A = "https://careers.google.com/jobs/results/1-software-engineer/"
+B = "https://careers.google.com/jobs/results/2-senior-software-engineer/"
+C = "https://careers.google.com/jobs/results/3-staff-software-engineer/"
+
+
+def test_permitted_scope_is_complete_before_first_request_is_validated() -> None:
+    """The permitted scope is complete before any request is yielded.
+
+    The verified defect: parse() grows allowed_sitemap_urls while it yields
+    (sizes 1, 2, 3), so a consumer inspecting it mid-stream sees a partial
+    scope. The live crawl meanwhile failed with the guard observing an empty
+    set.
+    """
+    spider = GoogleCareersSpider()
+    observed: list[tuple[str, int]] = []
+    for request in spider.parse(_sitemap_response([A, B, C])):
+        observed.append((request.url, len(spider.allowed_sitemap_urls)))
+    assert observed == [(A, 3), (B, 3), (C, 3)]
