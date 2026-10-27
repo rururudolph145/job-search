@@ -590,7 +590,7 @@ git commit -m "feat(pbi6): add PolicyGuardMiddleware raising PolicyViolation"
 - Consumes: nothing new (Scrapy `Spider`).
 - Produces: `GoogleCareersSpider.__init__(self, *args: Any, **kwargs: Any) -> None` (adds `super().__init__` and `self.allowed_sitemap_urls: set[str] = set()`); `parse` adds each accepted `<loc>` URL to `self.allowed_sitemap_urls` **before** yielding its detail request. `start_urls`, extraction, Tokyo filter, and `ID_PATTERN` are unchanged.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Extend `backend/tests/test_google_careers_spider.py` with:
 
@@ -613,21 +613,21 @@ def test_parse_records_accepted_locs_into_allowed_sitemap_urls() -> None:
 
 (Reuses the existing `_sitemap_response` helper already in that file.)
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest backend/tests/test_google_careers_spider.py::test_parse_records_accepted_locs_into_allowed_sitemap_urls -v`
 Expected: FAIL — `AttributeError: 'GoogleCareersSpider' object has no attribute 'allowed_sitemap_urls'`.
 
-- [ ] **Step 3: Implement `__init__` and update `parse`**
+- [x] **Step 3: Implement `__init__` and update `parse`**
 
 Add `from typing import Any` (already imported) and the `__init__`. In `parse`, inside the `if ROLE_PATTERN.search(url):` branch, add `self.allowed_sitemap_urls.add(url)` before the `yield scrapy.Request(...)`.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest backend/tests/test_google_careers_spider.py -v`
 Expected: PASS (all 7 existing tests + the new one).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/ingestion/spiders/google_careers.py backend/tests/test_google_careers_spider.py

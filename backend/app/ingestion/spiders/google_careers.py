@@ -42,12 +42,20 @@ class GoogleCareersSpider(scrapy.Spider):
     name = "google_careers"
     start_urls = [SITEMAP_URL]
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Every sitemap <loc> the spider accepted. The PolicyGuardMiddleware
+        # treats this set (plus the sitemap itself) as the crawl's only legal
+        # scope, so a URL added here must be added *before* it is requested.
+        self.allowed_sitemap_urls: set[str] = set()
+
     def parse(self, response: scrapy.http.Response) -> Iterator[scrapy.Request]:
         # The sitemap uses a default namespace (xmlns), so match element names by
         # local-name() rather than a bare //loc XPath.
         for url in response.xpath(".//*[local-name()='loc']/text()").getall():
             url = str(url).strip()
             if ROLE_PATTERN.search(url):
+                self.allowed_sitemap_urls.add(url)
                 yield scrapy.Request(
                     url, callback=self.parse_job, meta={"job_url": url}
                 )

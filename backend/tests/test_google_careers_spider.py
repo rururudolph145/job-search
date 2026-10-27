@@ -33,6 +33,26 @@ def test_sitemap_filters_to_software_engineer_slugs() -> None:
     assert all("software-engineer" in r.url for r in requests)
 
 
+def test_parse_records_accepted_locs_into_allowed_sitemap_urls() -> None:
+    sitemap = _sitemap_response(
+        [
+            "https://careers.google.com/jobs/results/83683003800134342-software-engineering-manager/",
+            "https://careers.google.com/jobs/results/123-program-manager/",
+            "https://careers.google.com/jobs/results/456-software-engineer/",
+        ]
+    )
+    spider = GoogleCareersSpider()
+    list(spider.parse(sitemap))  # consume the generator
+    assert spider.allowed_sitemap_urls == {
+        "https://careers.google.com/jobs/results/83683003800134342-software-engineering-manager/",
+        "https://careers.google.com/jobs/results/456-software-engineer/",
+    }
+
+
+def test_fresh_spider_starts_with_no_allowed_urls() -> None:
+    assert GoogleCareersSpider().allowed_sitemap_urls == set()
+
+
 def test_job_page_tokyo_sw_yields_full_dict() -> None:
     url = (
         "https://careers.google.com/jobs/results/"
