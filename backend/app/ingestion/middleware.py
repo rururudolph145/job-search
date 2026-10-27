@@ -36,16 +36,18 @@ class PolicyGuardMiddleware:
         result: AsyncIterable[scrapy.Request],
         spider: scrapy.Spider,
     ) -> AsyncIterator[scrapy.Request]:
-        # The permitted set is the sitemap's accepted <loc>s plus the sitemap URL
-        # itself. The sitemap request is a start_url, not spider output, so this
-        # guard never sees it in practice — but including it keeps any re-request
-        # of the feed legal.
-        # Snapshot ``allowed`` before consuming ``result``: reading it inside the
-        # loop would reintroduce the partial-scope window this guard exists to
-        # close, because the source generator is adapted asynchronously.
-        allowed: set[str] = set(getattr(spider, "allowed_sitemap_urls", set()))
-        allowed.update(spider.start_urls)
+        # Snapshot on the first item, not before the loop. ``result`` is the spider
+        # callback's unconsumed generator: ``parse`` has not run yet when this method
+        # is entered, so a snapshot taken there sees the empty set ``parse`` assigns
+        # on entry and rejects every request (the live crawl died after two requests).
+        # ``parse`` fills the whole set before its first yield, so the first item is
+        # already backed by the complete scope. Taken once, as before, so a scope
+        # mutation mid-stream cannot leak into a partially-checked crawl.
+        allowed: set[str] | None = None
         async for request in result:
+            if allowed is None:
+                allowed = set(getattr(spider, "allowed_sitemap_urls", set()))
+                allowed.update(spider.start_urls)
             if not self._is_permitted(request, allowed):
                 raise PolicyViolation(
                     f"crawl requested {request.url!r}, which is outside the "

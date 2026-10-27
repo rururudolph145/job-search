@@ -5,6 +5,7 @@ import scrapy
 from app.ingestion.middleware import PolicyGuardMiddleware, PolicyViolation
 from scrapy.core.spidermw import SpiderMiddlewareManager
 from scrapy.exceptions import IgnoreRequest
+from scrapy.http import TextResponse
 from scrapy.utils.test import get_crawler
 
 
@@ -239,3 +240,47 @@ async def test_refuses_careers_subtree_url_without_an_in_scope_origin() -> None:
                 spider,
             )
         )
+
+
+async def test_passes_requests_whose_scope_is_populated_during_iteration() -> None:
+    """The production shape: the spider fills its scope while the output runs.
+
+    ``GoogleCareersSpider.parse`` assigns a fresh empty set on entry and fills
+    it before its first yield. Snapshotting the set before the output generator
+    runs therefore snapshots the empty set and rejects every request — the live
+    crawl failing after two requests. Exercises the real middleware chain, which
+    the pre-populated-FakeSpider tests cannot.
+    """
+    from app.ingestion.spiders.google_careers import GoogleCareersSpider
+
+    body = (
+        '<?xml version="1.0"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        "".join(
+            "<url><loc>https://careers.google.com/jobs/results/"
+            f"{i}-software-engineer/</loc></url>"
+            for i in range(3)
+        )
+        + "</urlset>"
+    ).encode()
+    response = TextResponse(
+        "https://www.google.com/about/careers/applications/jobs/sitemap.xml",
+        body=body,
+        encoding="utf-8",
+    )
+    spider = GoogleCareersSpider()
+    crawler = get_crawler(GoogleCareersSpider)
+    crawler.spider = spider
+    manager = SpiderMiddlewareManager(PolicyGuardMiddleware(), crawler=crawler)
+
+    async def scrape_func(
+        response: scrapy.http.Response, request: scrapy.Request
+    ) -> Iterable[scrapy.Request]:
+        return spider.parse(response)
+
+    chain = await manager.scrape_response_async(scrape_func, response, None)  # type: ignore[arg-type]
+    passed = [r async for r in chain]
+    assert [r.url for r in passed] == [
+        f"https://careers.google.com/jobs/results/{i}-software-engineer/"
+        for i in range(3)
+    ]
