@@ -121,8 +121,8 @@ def test_permitted_scope_is_complete_before_first_request_is_validated() -> None
 
 
 async def test_job_redirect_target_is_permitted_after_restructure() -> None:
-    """careers.google.com jobs 301 to the declared careers prefix; must stay legal."""
-    from app.ingestion.middleware import PolicyGuardMiddleware
+    """careers.google.com jobs 301 to the declared careers host; must stay legal."""
+    from app.ingestion.middleware import REDIRECT_META_KEY, PolicyGuardMiddleware
 
     spider = GoogleCareersSpider()
     requests = list(spider.parse(_sitemap_response([A])))
@@ -130,7 +130,7 @@ async def test_job_redirect_target_is_permitted_after_restructure() -> None:
     redirect_target = A.replace(
         "careers.google.com", "www.google.com/about/careers/applications"
     )
-    redirected = requests[0].replace(url=redirect_target)
+    redirected = requests[0].replace(url=redirect_target, meta={REDIRECT_META_KEY: A})
 
     async def stream():
         yield redirected
@@ -142,3 +142,29 @@ async def test_job_redirect_target_is_permitted_after_restructure() -> None:
         )
     ]
     assert [r.url for r in passed] == [redirect_target]
+
+
+async def test_job_redirect_target_without_in_scope_origin_raises() -> None:
+    """The same target reached from a non-loc origin is not the crawl's business."""
+    import pytest
+    from app.ingestion.middleware import PolicyGuardMiddleware, PolicyViolation
+
+    spider = GoogleCareersSpider()
+    list(spider.parse(_sitemap_response([A])))
+    target = A.replace(
+        "careers.google.com", "www.google.com/about/careers/applications"
+    )
+    redirected = scrapy.Request(
+        target, meta={"redirected_from": "https://careers.google.com/jobs/results/9-x/"}
+    )
+
+    async def stream():
+        yield redirected
+
+    with pytest.raises(PolicyViolation):
+        [
+            r
+            async for r in PolicyGuardMiddleware().process_spider_output(
+                _sitemap_response([A]), stream(), spider
+            )
+        ]

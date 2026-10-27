@@ -14,8 +14,8 @@ class FakeSpider(scrapy.Spider):
     allowed_sitemap_urls: set[str]
 
 
-def _request(url: str) -> scrapy.Request:
-    return scrapy.Request(url)
+def _request(url: str, meta: dict[str, object] | None = None) -> scrapy.Request:
+    return scrapy.Request(url, meta=meta)
 
 
 def _response() -> scrapy.http.HtmlResponse:
@@ -97,6 +97,7 @@ async def test_start_url_is_always_permitted() -> None:
     assert len(reqs) == 1
 
 
+@pytest.mark.skip(reason="superseded: prefix admission removed")
 async def test_permits_declared_redirect_target() -> None:
     """careers.google.com 301s every job URL to www.google.com/about/careers.
 
@@ -118,6 +119,9 @@ async def test_permits_declared_redirect_target() -> None:
     assert [r.url for r in reqs] == [redirect_target]
 
 
+@pytest.mark.skip(
+    reason="superseded: vacuous; see test_refuses_careers_subtree_url_without_an_in_scope_origin"
+)
 async def test_redirect_scope_does_not_open_unrelated_urls() -> None:
     """Only the declared careers prefix is admitted, not www.google.com at large."""
     spider = FakeSpider()
@@ -191,3 +195,47 @@ async def test_empty_sitemap_yields_nothing_without_raising() -> None:
         mw.process_spider_output(_response(), _as_async([]), spider)
     )
     assert passed == []
+
+
+async def test_permits_the_redirected_job_target_only_as_a_declared_mapping() -> None:
+    """A redirect target is legal only if it maps from an in-scope loc.
+
+    Permit by mapping, not by path prefix: any careers-subtree URL is otherwise
+    fetchable, which makes §6.1's "<loc>-only" claim false and a future
+    scope-widening change undetectable by this guard.
+    """
+    spider = FakeSpider()
+    loc = "https://careers.google.com/jobs/results/1-software-engineer/"
+    spider.allowed_sitemap_urls = {loc}
+    mw = PolicyGuardMiddleware()
+    target = (
+        "https://www.google.com/about/careers/applications"
+        "/jobs/results/1-software-engineer/"
+    )
+    redirected = _request(target, meta={"redirected_from": str(loc)})
+    passed = await _collect(
+        mw.process_spider_output(_response(), _as_async([redirected]), spider)
+    )
+    assert [r.url for r in passed] == [target]
+
+
+async def test_refuses_careers_subtree_url_without_an_in_scope_origin() -> None:
+    """An out-of-scope request that sits under the careers subtree still raises."""
+    spider = FakeSpider()
+    spider.allowed_sitemap_urls = {"https://careers.google.com/jobs/results/1-a/"}
+    mw = PolicyGuardMiddleware()
+    with pytest.raises(PolicyViolation):
+        await _collect(
+            mw.process_spider_output(
+                _response(),
+                _as_async(
+                    [
+                        _request(
+                            "https://www.google.com/about/careers/applications/"
+                            "jobs/results/9-not-a-loc/"
+                        )
+                    ]
+                ),
+                spider,
+            )
+        )

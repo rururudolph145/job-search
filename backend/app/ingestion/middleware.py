@@ -11,10 +11,12 @@ class PolicyViolation(Exception):
     """A request escaped the crawl's permitted scope. Never swallowed."""
 
 
-# careers.google.com 301s every job page to this host, and Scrapy re-issues the
-# request on redirect, so the guard would otherwise refuse every live crawl.
-# Scoped to the careers subtree: www.google.com at large stays out of bounds.
-DECLARED_REDIRECT_PREFIXES: tuple[str, ...] = ("https://www.google.com/about/careers/",)
+# careers.google.com 301s every job page to www.google.com/about/careers/…, and
+# Scrapy re-issues that request with `redirected_from` in its meta. The redirect
+# target is permitted only when it maps from an in-scope loc — never by path
+# prefix, which would make any careers-subtree URL fetchable and contradict
+# §6.1's "<loc>-only" scope.
+REDIRECT_META_KEY = "redirected_from"
 
 
 class PolicyGuardMiddleware:
@@ -38,10 +40,13 @@ class PolicyGuardMiddleware:
         # itself. The sitemap request is a start_url, not spider output, so this
         # guard never sees it in practice — but including it keeps any re-request
         # of the feed legal.
+        # Snapshot ``allowed`` before consuming ``result``: reading it inside the
+        # loop would reintroduce the partial-scope window this guard exists to
+        # close, because the source generator is adapted asynchronously.
         allowed: set[str] = set(getattr(spider, "allowed_sitemap_urls", set()))
         allowed.update(spider.start_urls)
         async for request in result:
-            if not self._is_permitted(request.url, allowed):
+            if not self._is_permitted(request, allowed):
                 raise PolicyViolation(
                     f"crawl requested {request.url!r}, which is outside the "
                     "permitted sitemap scope"
@@ -49,7 +54,10 @@ class PolicyGuardMiddleware:
             yield request
 
     @staticmethod
-    def _is_permitted(url: str, allowed: set[str]) -> bool:
-        if url in allowed:
+    def _is_permitted(request: scrapy.Request, allowed: set[str]) -> bool:
+        if request.url in allowed:
             return True
-        return url.startswith(DECLARED_REDIRECT_PREFIXES)
+        # A redirect target is still the same job request, so it is legal only
+        # when it was redirected from a URL that is itself in scope.
+        origin = request.meta.get(REDIRECT_META_KEY)
+        return isinstance(origin, str) and origin in allowed
