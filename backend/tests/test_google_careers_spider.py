@@ -118,3 +118,27 @@ def test_permitted_scope_is_complete_before_first_request_is_validated() -> None
     for request in spider.parse(_sitemap_response([A, B, C])):
         observed.append((request.url, len(spider.allowed_sitemap_urls)))
     assert observed == [(A, 3), (B, 3), (C, 3)]
+
+
+async def test_job_redirect_target_is_permitted_after_restructure() -> None:
+    """careers.google.com jobs 301 to the declared careers prefix; must stay legal."""
+    from app.ingestion.middleware import PolicyGuardMiddleware
+
+    spider = GoogleCareersSpider()
+    requests = list(spider.parse(_sitemap_response([A])))
+
+    redirect_target = A.replace(
+        "careers.google.com", "www.google.com/about/careers/applications"
+    )
+    redirected = requests[0].replace(url=redirect_target)
+
+    async def stream():
+        yield redirected
+
+    passed = [
+        r
+        async for r in PolicyGuardMiddleware().process_spider_output(
+            _sitemap_response([A]), stream(), spider
+        )
+    ]
+    assert [r.url for r in passed] == [redirect_target]
