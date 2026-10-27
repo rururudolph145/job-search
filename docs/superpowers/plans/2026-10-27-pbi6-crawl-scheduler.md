@@ -691,7 +691,7 @@ git commit -m "feat(pbi6): add IngestRun orchestrator with run record + advisory
 - Consumes: nothing new.
 - Produces: `IngestionService.run(self, session: Session | None = None) -> IngestionResult`. When `session` is `None`, behavior is exactly today's (open a session from `session_factory`, commit, close). When `session` is provided, use it and `session.commit()` on the shared session without closing it; the no-arg path is unchanged so existing tests stay green.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Extend `backend/tests/test_ingestion_service.py` with:
 
@@ -712,21 +712,21 @@ def test_run_with_shared_session_commits_without_closing(
         assert job is not None
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `uv run pytest backend/tests/test_ingestion_service.py::test_run_with_shared_session_commits_without_closing -v`
 Expected: FAIL — `TypeError: IngestionService.run() got an unexpected keyword argument 'session'`.
 
-- [ ] **Step 3: Implement the optional `session`**
+- [x] **Step 3: Implement the optional `session`**
 
 Change the signature to `def run(self, session: Session | None = None) -> IngestionResult:`. If `session` is `None`, keep the current `session = self.session_factory()` + `finally: session.close()` behavior; if provided, use it and do not close it. The `IntegrityError`/rollback/read-and-bump logic is unchanged.
 
-- [ ] **Step 4: Run the full service suite**
+- [x] **Step 4: Run the full service suite**
 
 Run: `uv run pytest backend/tests/test_ingestion_service.py -v`
 Expected: PASS (all 7 existing tests + the new one).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/ingestion/service.py backend/tests/test_ingestion_service.py

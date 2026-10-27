@@ -33,8 +33,17 @@ class IngestionService:
         self.now_provider = now_provider or (lambda: datetime.now(timezone.utc))
         self.repository = JobRepository()
 
-    def run(self) -> IngestionResult:
-        session = self.session_factory()
+    def run(self, session: Session | None = None) -> IngestionResult:
+        """Ingest the source's drafts.
+
+        With ``session=None`` a session is opened from ``session_factory``, used,
+        and closed here. A caller-supplied ``session`` (``IngestRun``) is used and
+        committed on, but **not** closed: the caller owns its lifetime and the
+        surrounding transaction (§6.7).
+        """
+        owned = session is None
+        if session is None:
+            session = self.session_factory()
         now = self.now_provider()
         created = 0
         seen = 0
@@ -84,6 +93,9 @@ class IngestionService:
         except BaseException:
             session.rollback()
             raise
+        finally:
+            if owned:
+                session.close()
         return IngestionResult(
             created=created,
             seen=seen,

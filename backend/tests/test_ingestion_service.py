@@ -5,7 +5,7 @@ import pytest
 from app.ingestion.drafts import JobDraft
 from app.ingestion.service import IngestionService
 from app.models import Base, Job
-from sqlalchemy import create_engine, event, select
+from sqlalchemy import create_engine, event, select, text
 from sqlalchemy.orm import Session
 
 
@@ -192,6 +192,35 @@ def _race_session_factory(
         return Session(engine)
 
     return factory
+
+
+def test_run_with_shared_session_commits_without_closing(
+    session_factory: Callable[[], Session],
+) -> None:
+    service = IngestionService(
+        FakeSource([_draft("777")]), session_factory, now_provider=lambda: FIXED_NOW
+    )
+    with session_factory() as shared:
+        result = service.run(session=shared)
+        # run() committed on `shared`; a fresh session sees the row.
+        assert result.created == 1
+
+    with session_factory() as check:
+        job = check.scalar(select(Job).where(Job.external_job_id == "777"))
+        assert job is not None
+
+
+def test_run_with_shared_session_leaves_it_open(
+    session_factory: Callable[[], Session],
+) -> None:
+    # IngestRun owns the transaction and the run row commits after the service
+    # returns, so the shared session must still be usable.
+    service = IngestionService(
+        FakeSource([_draft("888")]), session_factory, now_provider=lambda: FIXED_NOW
+    )
+    with session_factory() as shared:
+        service.run(session=shared)
+        assert shared.execute(text("SELECT 1")).scalar() == 1
 
 
 def test_lost_insert_race_counts_seen_not_crash() -> None:
