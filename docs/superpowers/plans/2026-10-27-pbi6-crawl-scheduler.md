@@ -416,7 +416,7 @@ git commit -m "feat(pbi6): add per-host rate budgets (policy.py)"
 
   The dict's keys/values (exact): `ITEM_PIPELINES` → `{"app.ingestion.sources.google_careers._CrawlItemsPipeline": 1}`; `SPIDER_MIDDLEWARES` → `{"app.ingestion.middleware.PolicyGuardMiddleware": 543}`; `LOG_ENABLED` → `verbose`; `LOG_LEVEL` → `"INFO"` if `verbose` else `"DEBUG"`; `DOWNLOAD_DELAY` → `budget.download_delay` (resolved from `budget_for(source_url)`); `RANDOMIZE_DOWNLOAD_DELAY` → `True`; `CONCURRENT_REQUESTS` → `1`; `CONCURRENT_REQUESTS_PER_DOMAIN` → `1`; `AUTOTHROTTLE_ENABLED` → `True`; `AUTOTHROTTLE_TARGET_CONCURRENCY` → `1.0`; `AUTOTHROTTLE_MAX_DELAY` → `30.0`; `AUTOTHROTTLE_DEBUG` → `verbose`; `RETRY_TIMES` → `0`; `ROBOTSTXT_OBEY` → `False`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `backend/tests/test_scrapy_settings.py`:
 
@@ -461,12 +461,12 @@ def test_item_pipelines_and_spider_middlewares_registered() -> None:
     }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest backend/tests/test_scrapy_settings.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.ingestion.scrapy_settings'`.
 
-- [ ] **Step 3: Implement `build_scrapy_settings`**
+- [x] **Step 3: Implement `build_scrapy_settings`**
 
 A pure function; resolve `budget = budget_for(source_url)` at the top. Return value uses the exact values above. Then rewrite `GoogleCareersSource._make_process` to build the settings from this dict rather than `get_project_settings()`:
 
@@ -481,12 +481,12 @@ def _make_process(self) -> CrawlerProcess:
 
 Remove the now-unused `get_project_settings` import. The `_CRAWLED_ITEMS` collector and `_run_crawl` are untouched.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `uv run pytest backend/tests/test_scrapy_settings.py -v`
 Expected: PASS (5 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/ingestion/scrapy_settings.py backend/app/ingestion/sources/google_careers.py backend/tests/test_scrapy_settings.py

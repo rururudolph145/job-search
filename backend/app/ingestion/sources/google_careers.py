@@ -6,7 +6,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any
 
 from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
+from scrapy.settings import Settings as ScrapySettings
 
 from app.ingestion.drafts import JobDraft
 from app.ingestion.normalize import (
@@ -15,7 +15,8 @@ from app.ingestion.normalize import (
     normalize_location,
     normalize_title,
 )
-from app.ingestion.spiders.google_careers import GoogleCareersSpider
+from app.ingestion.scrapy_settings import build_scrapy_settings
+from app.ingestion.spiders.google_careers import SITEMAP_URL, GoogleCareersSpider
 
 
 class FetchError(Exception):
@@ -53,17 +54,9 @@ class GoogleCareersSource:
             yield draft
 
     def _make_process(self) -> CrawlerProcess:
-        """Build the Scrapy process with this source's verbosity settings."""
-        settings = get_project_settings()
-        settings.set(
-            "ITEM_PIPELINES",
-            {"app.ingestion.sources.google_careers._CrawlItemsPipeline": 1},
-        )
-        if self.verbose:
-            settings.set("LOG_LEVEL", "INFO")
-        else:
-            settings.set("LOG_ENABLED", False)
-        return CrawlerProcess(settings)
+        """Build the Scrapy process from the pinned politeness settings (§6.3)."""
+        values = build_scrapy_settings(verbose=self.verbose, source_url=SITEMAP_URL)
+        return CrawlerProcess(ScrapySettings(values))
 
     def _run_crawl(self, spider: object) -> Iterable[dict[str, Any]]:
         """Run the real Scrapy crawl. Replaced wholesale by fakes in tests."""

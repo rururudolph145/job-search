@@ -57,6 +57,23 @@ def test_source_name_is_google_careers() -> None:
     assert GoogleCareersSource().name == "google_careers"
 
 
+def test_make_process_uses_pinned_settings() -> None:
+    from app.ingestion.sources import google_careers
+
+    process = GoogleCareersSource(verbose=False)._make_process()
+    assert process.settings.getbool("ROBOTSTXT_OBEY") is False
+    assert process.settings.getfloat("DOWNLOAD_DELAY") == 2.0
+    assert process.settings.getint("CONCURRENT_REQUESTS") == 1
+    assert process.settings.getdict("ITEM_PIPELINES") == {
+        "app.ingestion.sources.google_careers._CrawlItemsPipeline": 1
+    }
+    assert "app.ingestion.middleware.PolicyGuardMiddleware" in (
+        process.settings.getdict("SPIDER_MIDDLEWARES")
+    )
+    # No longer reads scrapy's project settings (the app is not a Scrapy project).
+    assert not hasattr(google_careers, "get_project_settings")
+
+
 def test_source_raises_fetch_error_when_crawl_fails() -> None:
     from app.ingestion.sources.google_careers import FetchError
 
