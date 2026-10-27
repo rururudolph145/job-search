@@ -75,8 +75,48 @@ cd frontend && npm install && npm run dev
 
 ```bash
 # One-shot ingestion from the configured source (opt-in network access)
-make ingest
+make ingest                 # trigger=manual (default)
+make ingest TRIGGER=cron    # trigger=cron, as the crontab uses
 ```
+
+Every attempt that reaches the app writes one `crawl_runs` row (`running` →
+`succeeded` | `failed`, or `skipped_locked`). Exit codes: **0** success, **1**
+crawl failed, **2** skipped because another run holds the advisory lock.
+
+#### Scheduling with cron
+
+The cadence's single source of truth is `SCHEDULE` in
+`backend/app/ingestion/schedule.py` (currently `17 6 * * *`, daily at 06:17
+host-local). Add the matching line with `crontab -e`:
+
+```
+17 6 * * * cd /home/jason/job-search && /usr/bin/make ingest TRIGGER=cron >> /var/log/jobsearch-ingest.log 2>&1
+```
+
+Update the README line together with `SCHEDULE` — a drifted README is how a
+cadence silently changes.
+
+**Gotchas**
+
+- Use absolute paths (`which make uv docker`); cron's `PATH` is minimal.
+- The Docker daemon must be up for Postgres. A precheck is recommended:
+  `docker compose ps --status running`.
+- The log file must be writable by the cron user.
+- **A run whose process never started is not recorded.** The DB record covers
+  attempts that reached the app; a cron entry that fails to launch (Docker down,
+  bad path) shows only in the log. Host-level metrics (PBI 9) close that gap.
+- **Missed runs are tolerated, not backfilled.** Laptop asleep at 06:17 means no
+  crawl that day; the next run catches up on data. PBI 8 therefore keys
+  "disappeared" off observed successful runs, never wall-clock days.
+
+#### Politeness and scope
+
+Request rate is pinned in `backend/app/ingestion/scrapy_settings.py` from the
+per-host budgets in `ingestion/policy.py` (2s delay, one request in flight,
+autothrottle on, `RETRY_TIMES=0`). `PolicyGuardMiddleware` (a Scrapy spider
+middleware) raises `PolicyViolation` and stops the crawl if the spider ever
+requests a URL that is not a sitemap `<loc>` — the crawl cannot silently widen
+its scope.
 
 ## API
 

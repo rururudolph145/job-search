@@ -819,16 +819,16 @@ git commit -m "feat(pbi6): wire --trigger into the CLI and Makefile; add SCHEDUL
 - Consumes: `ingestion_lock` (Task 4), `SCHEDULE` (Task 11).
 - Produces: a Postgres mutual-exclusion test proving two concurrent `ingestion_lock` holders cannot both hold; and README documentation that cites `SCHEDULE` as the source of truth.
 
-- [ ] **Step 1: Write the Postgres mutex test**
+- [x] **Step 1: Write the Postgres mutex test**
 
 Create `backend/tests/test_locking_postgres.py`, model after `test_migration_0003.py` (module-level `pytestmark = pytest.mark.ingest`, `DATABASE_URL` from env). Two sessions on real Postgres: the first `with ingestion_lock(s1) as held1:` must yield `True`; while held, a second `with ingestion_lock(s2) as held2:` must yield `False`. On exit, `held1`'s release (via the `finally`) lets a subsequent acquisition succeed. Query with raw `text("SELECT ...")`, and clean up in `finally`.
 
-- [ ] **Step 2: Verify it is deselected by `make test`**
+- [x] **Step 2: Verify it is deselected by `make test`**
 
 Run: `uv run pytest -m "not ingest" -q`
 Expected: PASS (all default tests pass; `test_locking_postgres.py` collected but skipped as non-selected).
 
-- [ ] **Step 3: Update `README.md`**
+- [x] **Step 3: Update `README.md`**
 
 Add the documented crontab line (derived from `SCHEDULE`):
 
@@ -838,7 +838,7 @@ Add the documented crontab line (derived from `SCHEDULE`):
 
 and the gotchas (absolute paths; Docker daemon up; writable log). State that the DB record covers attempts that reached the app, not launches that never ran. Note the `SCHEDULE` constant in `backend/app/ingestion/schedule.py` is the single source of truth for the `17 6 * * *` value.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/tests/test_locking_postgres.py README.md
