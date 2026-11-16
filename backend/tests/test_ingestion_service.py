@@ -150,6 +150,7 @@ def test_source_error_propagates(session_factory: Callable[[], Session]) -> None
 
 def _race_session_factory(
     raise_on_insert_id: str,
+    winner: dict[str, object] | None = None,
 ) -> Callable[[], Session]:
     """Session factory whose write path loses a race for ``raise_on_insert_id``.
 
@@ -157,7 +158,8 @@ def _race_session_factory(
     When the loser's ORM ``INSERT`` for ``raise_on_insert_id`` executes (at
     ``flush``), the winning row is committed from a side connection and the
     insert is rejected by the unique index — exactly the concurrent-writer
-    outcome the service must absorb.
+    outcome the service must absorb. ``winner`` supplies extra columns for the
+    winning row (e.g. null ``city``/``country`` to prove the re-read backfills).
     """
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -178,15 +180,16 @@ def _race_session_factory(
         if raise_on_insert_id not in (parameters or ()):
             return
         armed = False  # the winner's own insert must not re-trigger this hook
-        with engine.connect() as winner:
-            winner.execute(
+        with engine.connect() as conn:
+            conn.execute(
                 Job.__table__.insert().values(
                     source="test_source",
                     external_job_id=raise_on_insert_id,
                     title="Winner",
+                    **(winner or {}),
                 )
             )
-            winner.commit()
+            conn.commit()
 
     def factory() -> Session:
         return Session(engine)
@@ -234,6 +237,34 @@ def test_lost_insert_race_counts_seen_not_crash() -> None:
 
     assert result.created == 0
     assert result.seen == 1
+
+
+def test_lost_insert_race_backfills_country_and_city() -> None:
+    # The race-lost re-read path must backfill location too (Review Focus #5),
+    # not only bump last_seen_at like a bare re-sight.
+    winner = {"city": None, "country": None}
+    factory = _race_session_factory("123", winner=winner)
+    draft = JobDraft(
+        external_job_id="123",
+        title="SWE",
+        company=None,
+        location="Tokyo, Japan",
+        url="https://x/123-swe/",
+        city="Tokyo",
+        country="JP",
+    )
+    service = IngestionService(
+        FakeSource([draft]), factory, now_provider=lambda: FIXED_NOW
+    )
+
+    result = service.run()
+
+    assert result.created == 0
+    assert result.seen == 1
+    with factory() as s:
+        job = s.scalar(select(Job).where(Job.external_job_id == "123"))
+        assert job.city == "Tokyo"
+        assert job.country == "JP"
 
 
 def test_new_draft_stores_country_and_city(session_factory) -> None:
