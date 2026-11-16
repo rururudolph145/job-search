@@ -25,3 +25,5 @@ def test_job_response_validates_orm_instance() -> None:
 
     assert resp.title == "Software Engineer"
     assert resp.company is None
+    assert resp.city is None
+    assert resp.country is None

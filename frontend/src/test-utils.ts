@@ -8,6 +8,8 @@ export function makeJob(overrides: Partial<Job> = {}): Job {
     title: "Software Engineer",
     company: "Google",
     location: "Tokyo",
+    city: "Tokyo",
+    country: "JP",
     first_seen_at: "2026-10-01T00:00:00Z",
     last_seen_at: "2026-10-17T00:00:00Z",
     updated_at: "2026-10-17T00:00:00Z",

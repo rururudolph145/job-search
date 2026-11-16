@@ -18,6 +18,8 @@ class JobResponse(BaseModel):
     title: str
     company: str | None
     location: str | None
+    city: str | None = None
+    country: str | None = None
     first_seen_at: datetime
     last_seen_at: datetime
     updated_at: datetime

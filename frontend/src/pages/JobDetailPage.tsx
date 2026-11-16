@@ -75,6 +75,10 @@ export function JobDetailPage() {
             <dd>{job.company ?? "—"}</dd>
             <dt className="text-slate-500">Location</dt>
             <dd>{job.location ?? "—"}</dd>
+            <dt className="text-slate-500">City</dt>
+            <dd>{job.city ?? "—"}</dd>
+            <dt className="text-slate-500">Country</dt>
+            <dd>{job.country ?? "—"}</dd>
             <dt className="text-slate-500">Source</dt>
             <dd>{job.source}</dd>
             <dt className="text-slate-500">External job ID</dt>

@@ -33,6 +33,8 @@ export interface Job {
   title: string;
   company: string | null;
   location: string | null;
+  city: string | null;
+  country: string | null;
   first_seen_at: string;
   last_seen_at: string;
   updated_at: string;

@@ -31,13 +31,23 @@ describe("JobDetailPage", () => {
 
     expect(await screen.findByRole("heading", { name: "Software Engineer" })).toBeInTheDocument();
     expect(screen.getByText("Google")).toBeInTheDocument();
-    expect(screen.getByText("Tokyo")).toBeInTheDocument();
+    // "Tokyo" renders twice once city is shown: the display location and the
+    // structured city. Pin the location row, then the city and country rows.
+    expect(screen.getByText("Location").nextElementSibling).toHaveTextContent("Tokyo");
+    expect(screen.getByText("City").nextElementSibling).toHaveTextContent("Tokyo");
+    expect(screen.getByText("Country").nextElementSibling).toHaveTextContent("JP");
     expect(screen.getByText("google_careers")).toBeInTheDocument();
     expect(screen.getByText("EXT-42")).toBeInTheDocument();
   });
 
-  it("renders an em-dash for null company and location", async () => {
-    const job = makeJob({ company: null, location: null, external_job_id: null });
+  it("renders an em-dash for null company, location, city and country", async () => {
+    const job = makeJob({
+      company: null,
+      location: null,
+      city: null,
+      country: null,
+      external_job_id: null,
+    });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: "OK", json: async () => job,
     } as Response));
@@ -47,6 +57,7 @@ describe("JobDetailPage", () => {
 
     const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThanOrEqual(3); // company, location, external_job_id
+    expect(dashes.length).toBeGreaterThanOrEqual(5); // + city, country
   });
 
   it("shows 'Job not found.' without a Retry button on 404", async () => {
