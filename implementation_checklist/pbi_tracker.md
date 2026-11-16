@@ -34,6 +34,15 @@
   - Depends on: PBI 2
 - [ ] **PBI 7 — Failure recovery**
   - Retry with exponential backoff; idempotent writes on retry.
+  - Incremental (streaming) ingestion: today `IngestionService.run()` commits the
+    whole crawl in one transaction after `GoogleCareersSource.fetch()` has fully
+    drained the sitemap, so nothing reaches Postgres until the run ends. A crash
+    or kill mid-crawl loses every row and forces a full re-crawl (observed: a
+    ~50-minute sitemap pass); no progress is visible while running and runs do
+    not resume from a frontier. PBI 7 should commit per item or per batch so rows
+    persist as they are crawled, pair that with the retry/idempotency work
+    (dedup-safe upsert on `(source, external_job_id)`), and reconcile the
+    all-or-nothing rollback contract with per-batch `crawl_runs` accounting.
   - Depends on: PBI 2, 3
 - [ ] **PBI 8 — "Disappeared job" detection**
   - Repeated-confirmation rule; distinguish a failed fetch from a successful empty response.
