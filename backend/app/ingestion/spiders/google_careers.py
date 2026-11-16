@@ -79,6 +79,9 @@ class GoogleCareersSpider(scrapy.Spider):
             # No structured location (format drift): drop, never guess from text.
             return
         display, city, country = location_tuple
+        if country != "JP":
+            # Japan-only scope: a valid tuple for another country is dropped.
+            return
 
         url = self._job_url(response)
         external_job_id = self._extract_id(self._slug(url))
