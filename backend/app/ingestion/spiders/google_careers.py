@@ -2,8 +2,9 @@
 
 Reads the public sitemap (``/jobs/sitemap``, a permitted feed), filters URLs to
 ``software-engineer`` slugs, then fetches each matching detail page and yields a
-plain dict. Location is narrowed to Tokyo-metro terms; pages matching none yield
-nothing (the caller filters them out).
+plain dict. Location is read from the structured tuple embedded in the page:
+``["<city>, <country>",["<city>, <country>"],null,null,"<city>","<CC>"]``.
+Only Japan (``country == "JP"``) pages are yielded; the caller filters further.
 """
 
 from __future__ import annotations
@@ -23,19 +24,14 @@ ROLE_PATTERN = re.compile(r"software-engineer", re.IGNORECASE)
 # Leading-numeric job id on the detail URL (e.g. "/jobs/results/836830...-slug/").
 ID_PATTERN = re.compile(r"^(\d+)-")
 
-# Best-effort location signals, narrowed to Tokyo-metro (spec §2). Order matters:
-# match city-level first for a more specific answer.
-TOKYO_TERMS = [
-    "Tokyo",
-    "Shinjuku",
-    "Minato",
-    "Chiyoda",
-    "Shibuya",
-    "Shibaura",
-    "Roppongi",
-    "Meguro",
-    "Setagaya",
-]
+# Structured location tuple in the page's embedded JS data blob. Groups: display
+# (1), city (2), ISO-3166 country code (3). The display string is duplicated as
+# the second element, so a naive "first match" would be ambiguous — the groups
+# pin the city/country positions.
+LOCATION_TUPLE = re.compile(
+    r'\[\["([^"]*)",\["[^"]*"\],null,null,"([^"]*)","([A-Z]{2}|)"\]\]'
+)
+
 
 
 class GoogleCareersSpider(scrapy.Spider):
@@ -78,19 +74,20 @@ class GoogleCareersSpider(scrapy.Spider):
             or ""
         ).strip()
 
-        body_text = " ".join(response.xpath("//body//text()").getall())
-        location = self._find_location(body_text)
-        if location is None:
-            # Tokyo-only filter (spec §2): a page matching no Tokyo term yields
-            # nothing — it is filtered out, not stored with a null location.
+        location_tuple = self._find_location_tuple(response.text)
+        if location_tuple is None:
+            # No structured location (format drift): drop, never guess from text.
             return
+        display, city, country = location_tuple
 
         url = self._job_url(response)
         external_job_id = self._extract_id(self._slug(url))
 
         yield {
             "title": title,
-            "location": location,
+            "location": display,
+            "city": city,
+            "country": country,
             "external_job_id": external_job_id,
             "url": url,
         }
@@ -102,17 +99,15 @@ class GoogleCareersSpider(scrapy.Spider):
         meta = response.request.meta if response.request else {}
         return str(meta.get("job_url") or response.url)
 
-    def _find_location(self, text: str) -> str | None:
-        """Return the Tokyo term that appears first in the text, or ``None``."""
-        lowered = text.lower()
-        best: tuple[int, str] | None = None
-        for term in TOKYO_TERMS:
-            idx = lowered.find(term.lower())
-            if idx == -1:
-                continue
-            if best is None or idx < best[0]:
-                best = (idx, term)
-        return best[1] if best is not None else None
+    def _find_location_tuple(self, text: str) -> tuple[str, str, str] | None:
+        """Return ``(display, city, country)`` from the location tuple, or None."""
+        match = LOCATION_TUPLE.search(text)
+        if match is None:
+            return None
+        display, city, country = match.group(1), match.group(2), match.group(3)
+        if not city or not country:
+            return None
+        return display, city, country
 
     def _slug(self, url: Any) -> str:
         # The id regex is anchored on the slug (the final path segment), so derrive

@@ -100,6 +100,31 @@ def test_spider_is_scrapy_spider() -> None:
     assert isinstance(GoogleCareersSpider(), scrapy.Spider)
 
 
+_LOC_BLOB = (
+    '<html><head><meta property="og:title" content="SWE Manager"/></head>'
+    "<body><script>"
+    'x("abc","Google","en-US",[["Tokyo, Japan",["Tokyo, Japan"],null,null,"Tokyo","JP"]],'
+    'null,[null,"x"])'
+    "</script></body></html>"
+)
+
+
+def test_job_page_extracts_city_and_country_from_tuple() -> None:
+    url = "https://careers.google.com/jobs/results/83683003800134342-swe/"
+    spider = GoogleCareersSpider()
+    result = list(spider.parse_job(_job_response(_LOC_BLOB, url)))
+    assert len(result) == 1
+    item = result[0]
+    assert item["city"] == "Tokyo"
+    assert item["country"] == "JP"
+    assert item["title"] == "SWE Manager"
+    assert item["external_job_id"] == "83683003800134342"
+
+
+def test_find_location_tuple_returns_none_without_tuple() -> None:
+    assert GoogleCareersSpider()._find_location_tuple("<p>no blob</p>") is None
+
+
 A = "https://careers.google.com/jobs/results/1-software-engineer/"
 B = "https://careers.google.com/jobs/results/2-senior-software-engineer/"
 C = "https://careers.google.com/jobs/results/3-staff-software-engineer/"
