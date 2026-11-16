@@ -22,6 +22,8 @@ class Job(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     company: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(Text, nullable=True)
+    city: Mapped[str | None] = mapped_column(Text, nullable=True)
+    country: Mapped[str | None] = mapped_column(Text, nullable=True)
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -51,4 +53,5 @@ class Job(Base):
             postgresql_where=text("external_job_id IS NOT NULL"),
         ),
         Index("ix_jobs_last_seen_at", "last_seen_at"),
+        Index("ix_jobs_country_city", "country", "city"),
     )

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.ingestion.drafts import JobDraft
 from app.ingestion.sources.base import JobSource
 from app.models import Job
 from app.repositories.job import JobRepository
@@ -55,7 +56,7 @@ class IngestionService:
                     external_job_id=draft.external_job_id,
                 )
                 if existing is not None:
-                    existing.last_seen_at = now
+                    self._apply_sighting(existing, draft, now)
                     seen += 1
                 else:
                     job = Job(
@@ -64,6 +65,8 @@ class IngestionService:
                         title=draft.title,
                         company=draft.company,
                         location=draft.location,
+                        city=draft.city,
+                        country=draft.country,
                         first_seen_at=now,
                         last_seen_at=now,
                     )
@@ -83,7 +86,7 @@ class IngestionService:
                             external_job_id=draft.external_job_id,
                         )
                         if existing is not None:
-                            existing.last_seen_at = now
+                            self._apply_sighting(existing, draft, now)
                             seen += 1
                         else:
                             # Re-insert failed to find a row we can bump; surface
@@ -101,3 +104,10 @@ class IngestionService:
             seen=seen,
             skipped_no_id=self.source.skipped_no_id,
         )
+
+    @staticmethod
+    def _apply_sighting(job: Job, draft: JobDraft, now: datetime) -> None:
+        """Bump a re-sighted job and backfill location fields from the draft."""
+        job.last_seen_at = now
+        job.city = draft.city
+        job.country = draft.country

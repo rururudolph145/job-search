@@ -18,6 +18,8 @@ def test_jobs_table_has_expected_columns() -> None:
         "title",
         "company",
         "location",
+        "city",
+        "country",
         "first_seen_at",
         "last_seen_at",
         "updated_at",
@@ -27,6 +29,8 @@ def test_jobs_table_has_expected_columns() -> None:
     assert cols["external_job_id"]["nullable"] is True
     assert cols["company"]["nullable"] is True
     assert cols["location"]["nullable"] is True
+    assert cols["city"]["nullable"] is True
+    assert cols["country"]["nullable"] is True
 
 
 def test_jobs_indexes_created() -> None:
@@ -38,6 +42,7 @@ def test_jobs_indexes_created() -> None:
     assert "uq_jobs_source_external_job_id" in index_names
     assert "ix_jobs_source_external_job_id" not in index_names
     assert "ix_jobs_last_seen_at" in index_names
+    assert "ix_jobs_country_city" in index_names
 
 
 def test_source_external_id_index_is_unique_and_partial() -> None:

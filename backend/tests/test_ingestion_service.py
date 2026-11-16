@@ -234,3 +234,58 @@ def test_lost_insert_race_counts_seen_not_crash() -> None:
 
     assert result.created == 0
     assert result.seen == 1
+
+
+def test_new_draft_stores_country_and_city(session_factory) -> None:
+    draft = JobDraft(
+        external_job_id="123",
+        title="SWE",
+        company=None,
+        location="Tokyo, Japan",
+        url="https://x/123-swe/",
+        city="Tokyo",
+        country="JP",
+    )
+    service = IngestionService(
+        FakeSource([draft]), session_factory, now_provider=lambda: FIXED_NOW
+    )
+    service.run()
+    with session_factory() as s:
+        job = s.scalar(select(Job))
+        assert job.city == "Tokyo"
+        assert job.country == "JP"
+
+
+def test_recrawl_backfills_country_and_city_on_existing_row(session_factory) -> None:
+    # Pre-existing row with null city/country (simulates pre-migration data).
+    with session_factory() as s:
+        s.add(
+            Job(
+                source="test_source",
+                external_job_id="123",
+                title="SWE",
+                company=None,
+                location="Tokyo",
+                city=None,
+                country=None,
+            )
+        )
+        s.commit()
+    draft = JobDraft(
+        external_job_id="123",
+        title="SWE",
+        company=None,
+        location="Tokyo, Japan",
+        url="https://x/123-swe/",
+        city="Tokyo",
+        country="JP",
+    )
+    service = IngestionService(
+        FakeSource([draft]), session_factory, now_provider=lambda: FIXED_NOW
+    )
+    result = service.run()
+    assert result.seen == 1
+    with session_factory() as s:
+        job = s.scalar(select(Job))
+        assert job.city == "Tokyo"
+        assert job.country == "JP"
