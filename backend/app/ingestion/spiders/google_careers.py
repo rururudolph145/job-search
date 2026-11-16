@@ -2,15 +2,26 @@
 
 Reads the public sitemap (``/jobs/sitemap``, a permitted feed), filters URLs to
 ``software-engineer`` slugs, then fetches each matching detail page and yields a
-plain dict. Location is read from the structured tuple embedded in the page:
-``["<city>, <country>",["<city>, <country>"],null,null,"<city>","<CC>"]``.
-Only Japan (``country == "JP"``) pages are yielded; the caller filters further.
+plain dict. Only Japan (``country == "JP"``) pages are yielded; the caller
+filters further.
+
+Location is read from two places on the job page, both keyed to the job's own
+identity (never "the first location on the page" — every page also embeds
+Google's office list and related jobs, which are decoys):
+
+* the **primary display string** is the first ``<span class="r0wTof ">`` inside
+  the job header block (``<span class="pwO9Dc vo5qdf">`` … ``place`` icon),
+  e.g. ``Zürich, Switzerland`` (alternatives follow in ``r0wTof p3oCrc``);
+* the **country code** is the ``loc=`` parameter on the job's own ``ds:0``
+  record (``data:[["<job id>", …``), e.g. ``loc=CH``. This is authoritative
+  even when the country has no office tuple on the page.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import Any
 
 import scrapy
@@ -24,13 +35,33 @@ ROLE_PATTERN = re.compile(r"software-engineer", re.IGNORECASE)
 # Leading-numeric job id on the detail URL (e.g. "/jobs/results/836830...-slug/").
 ID_PATTERN = re.compile(r"^(\d+)-")
 
-# Structured location tuple in the page's embedded JS data blob. Groups: display
-# (1), city (2), ISO-3166 country code (3). The display string is duplicated as
-# the second element, so a naive "first match" would be ambiguous — the groups
-# pin the city/country positions.
-LOCATION_TUPLE = re.compile(
-    r'\[\["([^"]*)",\["[^"]*"\],null,null,"([^"]*)","([A-Z]{2}|)"\]\]'
+# Job header block: the primary location is the first plain ``r0wTof`` span
+# (no ``p3oCrc`` secondary class) after the ``place`` icon. The header renders
+# once per page, so the first match is the job's own primary location.
+PRIMARY_LOCATION = re.compile(
+    r'<span class="pwO9Dc vo5qdf">.*?place</i><span class="r0wTof ">([^<]*)</span>',
+    re.DOTALL,
 )
+
+# Country code on the job's own record: the ``loc=`` query param, escaped as
+# ``loc=`` inside the JS data blob. We anchor on the job id so a decoy
+# record's ``loc=`` cannot be picked up.
+LOC_CODE_TEMPLATE = r'data:\[\["{job_id}".{{0,60000}}?loc\\u003d([A-Z]{{2}})'
+
+# Display string → city. Take the first comma-separated token, then strip a
+# trailing 2-3 letter state/province code glued to it ("Sydney NSW" → "Sydney").
+# "New York, NY, USA" keeps "New York" (the code is a separate token).
+_CITY_SPLIT = re.compile(r"\s*,")
+_TRAILING_REGION = re.compile(r"\s+[A-Z]{2,3}$")
+
+
+@dataclass(frozen=True, slots=True)
+class PrimaryLocation:
+    """The job's own primary location, as rendered on its detail page."""
+
+    display: str
+    city: str | None
+    country: str
 
 
 class GoogleCareersSpider(scrapy.Spider):
@@ -73,23 +104,22 @@ class GoogleCareersSpider(scrapy.Spider):
             or ""
         ).strip()
 
-        location_tuple = self._find_location_tuple(response.text)
-        if location_tuple is None:
-            # No structured location (format drift): drop, never guess from text.
-            return
-        display, city, country = location_tuple
-        if country != "JP":
-            # Japan-only scope: a valid tuple for another country is dropped.
-            return
-
         url = self._job_url(response)
         external_job_id = self._extract_id(self._slug(url))
 
+        location = self._extract_primary_location(response.text, external_job_id)
+        if location is None:
+            # No primary location (format drift): drop, never guess from text.
+            return
+        if location.country != "JP":
+            # Japan-only scope: a valid non-JP job is dropped.
+            return
+
         yield {
             "title": title,
-            "location": display,
-            "city": city,
-            "country": country,
+            "location": location.display,
+            "city": location.city,
+            "country": location.country,
             "external_job_id": external_job_id,
             "url": url,
         }
@@ -101,15 +131,32 @@ class GoogleCareersSpider(scrapy.Spider):
         meta = response.request.meta if response.request else {}
         return str(meta.get("job_url") or response.url)
 
-    def _find_location_tuple(self, text: str) -> tuple[str, str, str] | None:
-        """Return ``(display, city, country)`` from the location tuple, or None."""
-        match = LOCATION_TUPLE.search(text)
-        if match is None:
+    def _extract_primary_location(
+        self, text: str, job_id: str
+    ) -> PrimaryLocation | None:
+        """Return the job's own primary location, or None on format drift.
+
+        Both signals are anchored to the job's identity: the header block (one
+        per page) for the display string, and the ``loc=`` code on the job's own
+        ``ds:0`` record for the country. Neither is "the first location-shaped
+        string", which on these pages is a Google office or a related job.
+        """
+        header = PRIMARY_LOCATION.search(text)
+        if header is None:
             return None
-        display, city, country = match.group(1), match.group(2), match.group(3)
-        if not city or not country:
+        display = header.group(1).strip()
+        if not display:
             return None
-        return display, city, country
+
+        code = re.search(LOC_CODE_TEMPLATE.format(job_id=re.escape(job_id)), text)
+        if code is None:
+            # Country is authoritative and non-guessable; without it, drop.
+            return None
+        country = code.group(1)
+
+        city = _CITY_SPLIT.split(display, maxsplit=1)[0].strip()
+        city = _TRAILING_REGION.sub("", city) or None
+        return PrimaryLocation(display=display, city=city, country=country)
 
     def _slug(self, url: Any) -> str:
         # The id regex is anchored on the slug (the final path segment), so derrive

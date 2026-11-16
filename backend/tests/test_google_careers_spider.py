@@ -1,6 +1,21 @@
+from pathlib import Path
+
+import pytest
 import scrapy
 from app.ingestion.spiders.google_careers import GoogleCareersSpider
 from scrapy.http import HtmlResponse, TextResponse
+
+FIXTURES = Path(__file__).parent / "fixtures" / "google_careers"
+
+
+def _fixture(name: str) -> str:
+    return (FIXTURES / name).read_text(encoding="utf-8")
+
+
+def _job_response_for(text: str, job_id: str) -> HtmlResponse:
+    """A job page response whose sitemap URL carries ``job_id``."""
+    url = f"https://careers.google.com/jobs/results/{job_id}-software-engineer/"
+    return HtmlResponse(url=url, body=text.encode("utf-8"), encoding="utf-8")
 
 
 def _sitemap_response(urls: list[str]) -> TextResponse:
@@ -53,18 +68,7 @@ def test_fresh_spider_starts_with_no_allowed_urls() -> None:
     assert GoogleCareersSpider().allowed_sitemap_urls == set()
 
 
-def test_job_page_non_japan_tuple_yields_nothing() -> None:
-    url = "https://careers.google.com/jobs/results/7-swe/"
-    body = (
-        "<html><head><title>T</title></head><body><script>"
-        '[["Bangalore, India",["Bangalore, India"],null,null,"Bangalore","IN"]]'
-        "</script></body></html>"
-    )
-    spider = GoogleCareersSpider()
-    assert list(spider.parse_job(_job_response(body, url))) == []
-
-
-def test_job_page_without_tuple_yields_nothing() -> None:
+def test_job_page_without_location_yields_nothing() -> None:
     url = "https://careers.google.com/jobs/results/8-swe/"
     body = "<html><body><p>Tokyo, Japan</p></body></html>"
     spider = GoogleCareersSpider()
@@ -75,29 +79,80 @@ def test_spider_is_scrapy_spider() -> None:
     assert isinstance(GoogleCareersSpider(), scrapy.Spider)
 
 
-_LOC_BLOB = (
-    '<html><head><meta property="og:title" content="SWE Manager"/></head>'
-    "<body><script>"
-    'x("abc","Google","en-US",[["Tokyo, Japan",["Tokyo, Japan"],null,null,"Tokyo","JP"]],'
-    'null,[null,"x"])'
-    "</script></body></html>"
+# Ground truth, hand-verified against the live site. Each fixture is a trimmed
+# real page: the job header (primary location) + the job's own ds:0 record
+# (with its `loc=` country code).
+@pytest.mark.parametrize(
+    ("fixture", "job_id", "display", "city", "country"),
+    [
+        ("jp-tokyo.html", "80779223387513542", "Tokyo, Japan", "Tokyo", "JP"),
+        ("au-sydney.html", "129819530682606278", "Sydney NSW, Australia", "Sydney", "AU"),
+        ("ch-zurich.html", "78601150982431430", "Zürich, Switzerland", "Zürich", "CH"),
+        ("us-newyork.html", "102729755412832966", "New York, NY, USA", "New York", "US"),
+        (
+            "us-mountainview.html",
+            "139033052381618886",
+            "Mountain View, CA, USA",
+            "Mountain View",
+            "US",
+        ),
+    ],
 )
-
-
-def test_job_page_extracts_city_and_country_from_tuple() -> None:
-    url = "https://careers.google.com/jobs/results/83683003800134342-swe/"
+def test_extract_primary_location(
+    fixture: str, job_id: str, display: str, city: str, country: str
+) -> None:
     spider = GoogleCareersSpider()
-    result = list(spider.parse_job(_job_response(_LOC_BLOB, url)))
+    got = spider._extract_primary_location(_fixture(fixture), job_id)
+    assert got is not None
+    assert got.display == display
+    assert got.city == city
+    assert got.country == country
+
+
+def test_tokyo_page_is_yielded_with_structured_location() -> None:
+    spider = GoogleCareersSpider()
+    result = list(spider.parse_job(_job_response_for(_fixture("jp-tokyo.html"), "80779223387513542")))
     assert len(result) == 1
     item = result[0]
+    assert item["title"] == "T"
+    assert item["location"] == "Tokyo, Japan"
     assert item["city"] == "Tokyo"
     assert item["country"] == "JP"
-    assert item["title"] == "SWE Manager"
-    assert item["external_job_id"] == "83683003800134342"
+    assert item["external_job_id"] == "80779223387513542"
 
 
-def test_find_location_tuple_returns_none_without_tuple() -> None:
-    assert GoogleCareersSpider()._find_location_tuple("<p>no blob</p>") is None
+@pytest.mark.parametrize(
+    ("fixture", "job_id"),
+    [
+        ("au-sydney.html", "129819530682606278"),
+        ("ch-zurich.html", "78601150982431430"),
+        ("us-newyork.html", "102729755412832966"),
+        ("us-mountainview.html", "139033052381618886"),
+    ],
+)
+def test_non_japan_job_is_dropped(fixture: str, job_id: str) -> None:
+    spider = GoogleCareersSpider()
+    assert list(spider.parse_job(_job_response_for(_fixture(fixture), job_id))) == []
+
+
+def test_decoy_tokyo_tuple_on_non_japan_page_is_not_reported_as_tokyo() -> None:
+    # The bug that shipped: a non-JP job page carries a stray Tokyo office tuple,
+    # and a positional "first tuple" extractor labelled the job Tokyo/JP.
+    job_id = "102729755412832966"
+    body = (
+        _fixture("us-newyork.html")
+        .replace(
+            "</body>",
+            '<script>var offices=[["Tokyo, Japan",["Tokyo, Japan"],null,null,'
+            '"Tokyo","JP"]];</script></body>',
+        )
+    )
+    spider = GoogleCareersSpider()
+    got = spider._extract_primary_location(body, job_id)
+    assert got is not None
+    assert got.city == "New York"
+    assert got.country == "US"
+    assert list(spider.parse_job(_job_response_for(body, job_id))) == []
 
 
 A = "https://careers.google.com/jobs/results/1-software-engineer/"
