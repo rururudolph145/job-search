@@ -22,3 +22,9 @@ frontend/dist/
 # SQLite (tests only; prod DB is Postgres)
 *.sqlite
 *.db
+
+# Local scratch / manual-inspection artifacts (never committed)
+local/
+
+# Scrapy experiment output (regenerated, not source)
+experiment_scrapy/jobs.jsonl
