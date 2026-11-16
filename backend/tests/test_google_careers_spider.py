@@ -56,7 +56,7 @@ def test_fresh_spider_starts_with_no_allowed_urls() -> None:
 def test_job_page_non_japan_tuple_yields_nothing() -> None:
     url = "https://careers.google.com/jobs/results/7-swe/"
     body = (
-        '<html><head><title>T</title></head><body><script>'
+        "<html><head><title>T</title></head><body><script>"
         '[["Bangalore, India",["Bangalore, India"],null,null,"Bangalore","IN"]]'
         "</script></body></html>"
     )

@@ -33,7 +33,6 @@ LOCATION_TUPLE = re.compile(
 )
 
 
-
 class GoogleCareersSpider(scrapy.Spider):
     name = "google_careers"
     start_urls = [SITEMAP_URL]
