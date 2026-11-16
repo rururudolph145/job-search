@@ -8,7 +8,7 @@ export const PBIS: Pbi[] = [
     stage: "mvp",
     title: "Jobs schema",
     description:
-      "jobs, companies, job_sources tables + Alembic migration + repositories.",
+      "jobs table + Alembic migration + repository. (companies/job_sources deferred to PBI 3.)",
     depends_on: [],
   },
   {
@@ -24,7 +24,7 @@ export const PBIS: Pbi[] = [
     stage: "mvp",
     title: "Normalization + dedup keys",
     description:
-      "Canonical job identity across URLs and ATS providers.",
+      "Unique (source, external_job_id) identity via a partial unique index; field normalization at the ingest boundary. (Cross-ATS matching deferred.)",
     depends_on: ["1"],
   },
   {

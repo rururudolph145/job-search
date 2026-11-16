@@ -7,7 +7,7 @@ export function NavBar() {
         <Link to="/" className="font-semibold text-lg">
           Job Search
         </Link>
-        <Link to="/" className="hover:text-white">
+        <Link to="/jobs" className="hover:text-white">
           Dashboard
         </Link>
         <Link to="/pbi" className="hover:text-white">

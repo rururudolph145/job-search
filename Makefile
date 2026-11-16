@@ -1,4 +1,4 @@
-.PHONY: sync db-up db-down migrate dev lint typecheck test
+.PHONY: sync db-up db-down migrate dev ingest lint typecheck test test-integration
 
 sync:
 	uv sync --all-packages
@@ -15,6 +15,10 @@ migrate:
 dev:
 	uv run --package jobsearch-backend uvicorn app.main:app --reload
 
+# TRIGGER=cron|manual (default manual); cron runs `make ingest TRIGGER=cron`.
+ingest:
+	uv run --package jobsearch-backend python -m app.ingest --trigger $(or $(TRIGGER),manual)
+
 lint:
 	uv run ruff check . && uv run ruff format --check .
 
@@ -22,4 +26,7 @@ typecheck:
 	uv run mypy backend/app shared/jobsearch_shared
 
 test:
-	uv run pytest
+	uv run pytest -m "not ingest"
+
+test-integration:
+	uv run pytest -m ingest

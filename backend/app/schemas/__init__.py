@@ -5,6 +5,6 @@ backend can import from ``app.schemas`` without a direct dependency on the
 shared package's import path in application code.
 """
 
-from jobsearch_shared.schemas import HealthResponse
+from jobsearch_shared.schemas import HealthResponse, JobListResponse, JobResponse
 
-__all__ = ["HealthResponse"]
+__all__ = ["HealthResponse", "JobListResponse", "JobResponse"]

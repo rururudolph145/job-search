@@ -9,19 +9,19 @@
 
 > Goal: ingest job postings from permitted feeds, store them with a canonical identity, and browse them in a dashboard.
 
-- [ ] **PBI 1 — Jobs schema**
-  - `jobs`, `companies`, `job_sources` tables + Alembic migration + repositories.
+- [x] **PBI 1 — Jobs schema**
+  - `jobs` table + Alembic migration + repository. (`companies`/`job_sources` deferred to PBI 3.)
   - Depends on: —
-- [ ] **PBI 2 — Source ingestion**
+- [x] **PBI 2 — Source ingestion**
   - Fetch from official job APIs / permitted feeds only (no bot-protection bypass).
   - Depends on: PBI 1
-- [ ] **PBI 3 — Normalization + dedup keys**
-  - Canonical job identity across URLs and ATS providers.
+- [x] **PBI 3 — Normalization + dedup keys**
+  - Unique `(source, external_job_id)` identity via a partial unique index; field normalization at the ingest boundary. (Cross-ATS matching deferred — one source today.)
   - Depends on: PBI 1
-- [ ] **PBI 4 — Query routes**
+- [x] **PBI 4 — Query routes**
   - List/detail/filter endpoints for jobs.
   - Depends on: PBI 1, 3
-- [ ] **PBI 5 — Jobs dashboard page**
+- [x] **PBI 5 — Jobs dashboard page**
   - Browse, filter, and open job details.
   - Depends on: PBI 4
 
@@ -29,11 +29,20 @@
 
 > Goal: make the crawler reliable, efficient, and correct — the engineering that carries the portfolio narrative.
 
-- [ ] **PBI 6 — Crawl scheduler**
+- [x] **PBI 6 — Crawl scheduler**
   - Crawl scheduling + per-host rate limits + robots.txt/policy compliance.
   - Depends on: PBI 2
 - [ ] **PBI 7 — Failure recovery**
   - Retry with exponential backoff; idempotent writes on retry.
+  - Incremental (streaming) ingestion: today `IngestionService.run()` commits the
+    whole crawl in one transaction after `GoogleCareersSource.fetch()` has fully
+    drained the sitemap, so nothing reaches Postgres until the run ends. A crash
+    or kill mid-crawl loses every row and forces a full re-crawl (observed: a
+    ~50-minute sitemap pass); no progress is visible while running and runs do
+    not resume from a frontier. PBI 7 should commit per item or per batch so rows
+    persist as they are crawled, pair that with the retry/idempotency work
+    (dedup-safe upsert on `(source, external_job_id)`), and reconcile the
+    all-or-nothing rollback contract with per-batch `crawl_runs` accounting.
   - Depends on: PBI 2, 3
 - [ ] **PBI 8 — "Disappeared job" detection**
   - Repeated-confirmation rule; distinguish a failed fetch from a successful empty response.
