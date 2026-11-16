@@ -122,17 +122,24 @@ def test_tokyo_page_is_yielded_with_structured_location() -> None:
 
 
 @pytest.mark.parametrize(
-    ("fixture", "job_id"),
+    ("fixture", "job_id", "city", "country"),
     [
-        ("au-sydney.html", "129819530682606278"),
-        ("ch-zurich.html", "78601150982431430"),
-        ("us-newyork.html", "102729755412832966"),
-        ("us-mountainview.html", "139033052381618886"),
+        ("au-sydney.html", "129819530682606278", "Sydney", "AU"),
+        ("ch-zurich.html", "78601150982431430", "Zürich", "CH"),
+        ("us-newyork.html", "102729755412832966", "New York", "US"),
+        ("us-mountainview.html", "139033052381618886", "Mountain View", "US"),
     ],
 )
-def test_non_japan_job_is_dropped(fixture: str, job_id: str) -> None:
+def test_non_japan_job_is_yielded_with_its_country(
+    fixture: str, job_id: str, city: str, country: str
+) -> None:
+    # Country filtering is a query concern, not a crawl-time drop: the spider
+    # stores every job so absence stays visible downstream.
     spider = GoogleCareersSpider()
-    assert list(spider.parse_job(_job_response_for(_fixture(fixture), job_id))) == []
+    result = list(spider.parse_job(_job_response_for(_fixture(fixture), job_id)))
+    assert len(result) == 1
+    assert result[0]["city"] == city
+    assert result[0]["country"] == country
 
 
 def test_decoy_tokyo_tuple_on_non_japan_page_is_not_reported_as_tokyo() -> None:
@@ -152,7 +159,9 @@ def test_decoy_tokyo_tuple_on_non_japan_page_is_not_reported_as_tokyo() -> None:
     assert got is not None
     assert got.city == "New York"
     assert got.country == "US"
-    assert list(spider.parse_job(_job_response_for(body, job_id))) == []
+    result = list(spider.parse_job(_job_response_for(body, job_id)))
+    assert len(result) == 1
+    assert result[0]["country"] == "US"
 
 
 A = "https://careers.google.com/jobs/results/1-software-engineer/"

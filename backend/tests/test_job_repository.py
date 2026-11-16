@@ -185,6 +185,33 @@ def test_list_filters_by_company_and_location(
     assert [r.title for r in rows] == ["A"]
 
 
+def test_list_filters_by_country_normalized(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(engine_mod, "engine", session.get_bind())
+    repo = JobRepository()
+    session.add(_make_job(external_job_id="1", title="A", city="Tokyo", country="JP"))
+    session.add(_make_job(external_job_id="2", title="B", city="New York", country="US"))
+    session.commit()
+
+    # country stored uppercase; query is case-insensitive on input.
+    rows = repo.list(session, limit=10, offset=0, country="jp")
+    assert [r.title for r in rows] == ["A"]
+
+
+def test_list_filters_by_city_case_insensitive(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(engine_mod, "engine", session.get_bind())
+    repo = JobRepository()
+    session.add(_make_job(external_job_id="1", title="A", city="Zürich", country="CH"))
+    session.add(_make_job(external_job_id="2", title="B", city="London", country="GB"))
+    session.commit()
+
+    rows = repo.list(session, limit=10, offset=0, city="zürich")
+    assert [r.title for r in rows] == ["A"]
+
+
 def test_count_with_and_without_filters(
     session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

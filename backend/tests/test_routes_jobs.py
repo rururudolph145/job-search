@@ -27,7 +27,9 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
                 external_job_id="123",
                 title="Software Engineer",
                 company="Google",
-                location="Tokyo",
+                location="Tokyo, Japan",
+                city="Tokyo",
+                country="JP",
             )
         )
         session.add(
@@ -36,7 +38,9 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
                 external_job_id="456",
                 title="Data Analyst",
                 company=None,
-                location=None,
+                location="New York, NY, USA",
+                city="New York",
+                country="US",
             )
         )
         session.commit()
@@ -62,6 +66,27 @@ def test_list_jobs_source_filter(client: TestClient) -> None:
     body = resp.json()
     assert body["total"] == 1
     assert [item["title"] for item in body["items"]] == ["Data Analyst"]
+
+
+def test_list_jobs_country_filter(client: TestClient) -> None:
+    resp = client.get("/jobs", params={"country": "jp"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert [item["title"] for item in body["items"]] == ["Software Engineer"]
+    assert body["items"][0]["country"] == "JP"
+
+
+def test_list_jobs_city_filter(client: TestClient) -> None:
+    resp = client.get("/jobs", params={"city": "New York"})
+    body = resp.json()
+    assert body["total"] == 1
+    assert [item["title"] for item in body["items"]] == ["Data Analyst"]
+
+
+def test_list_jobs_country_and_city_combine(client: TestClient) -> None:
+    resp = client.get("/jobs", params={"country": "JP", "city": "New York"})
+    assert resp.json() == {"items": [], "total": 0}
 
 
 def test_list_jobs_q_case_insensitive_substring(client: TestClient) -> None:

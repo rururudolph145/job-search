@@ -2,8 +2,9 @@
 
 Reads the public sitemap (``/jobs/sitemap``, a permitted feed), filters URLs to
 ``software-engineer`` slugs, then fetches each matching detail page and yields a
-plain dict. Only Japan (``country == "JP"``) pages are yielded; the caller
-filters further.
+plain dict with its primary location. Every job is yielded regardless of
+country — country/city filtering is a query concern, so a job we did not store
+stays distinguishable from one that does not exist.
 
 Location is read from two places on the job page, both keyed to the job's own
 identity (never "the first location on the page" — every page also embeds
@@ -110,9 +111,6 @@ class GoogleCareersSpider(scrapy.Spider):
         location = self._extract_primary_location(response.text, external_job_id)
         if location is None:
             # No primary location (format drift): drop, never guess from text.
-            return
-        if location.country != "JP":
-            # Japan-only scope: a valid non-JP job is dropped.
             return
 
         yield {

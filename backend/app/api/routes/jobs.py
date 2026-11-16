@@ -23,6 +23,8 @@ async def list_jobs(
     source: Annotated[str | None, Query()] = None,
     company: Annotated[str | None, Query()] = None,
     location: Annotated[str | None, Query()] = None,
+    country: Annotated[str | None, Query()] = None,
+    city: Annotated[str | None, Query()] = None,
     q: Annotated[str | None, Query()] = None,
 ) -> JobListResponse:
     jobs = repo.list(
@@ -32,9 +34,19 @@ async def list_jobs(
         source=source,
         company=company,
         location=location,
+        country=country,
+        city=city,
         q=q,
     )
-    total = repo.count(session, source=source, company=company, location=location, q=q)
+    total = repo.count(
+        session,
+        source=source,
+        company=company,
+        location=location,
+        country=country,
+        city=city,
+        q=q,
+    )
     items = [JobResponse.model_validate(job) for job in jobs]
     return JobListResponse(items=items, total=total)
 

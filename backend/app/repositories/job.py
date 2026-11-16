@@ -15,6 +15,8 @@ class JobRepository:
         source: str | None,
         company: str | None,
         location: str | None,
+        country: str | None,
+        city: str | None,
         q: str | None,
     ) -> Select:
         if source is not None:
@@ -23,6 +25,13 @@ class JobRepository:
             stmt = stmt.where(Job.company == company)
         if location is not None:
             stmt = stmt.where(Job.location == location)
+        if country is not None:
+            # Stored uppercase (normalize_country); accept any input case.
+            stmt = stmt.where(Job.country == country.strip().upper())
+        if city is not None:
+            # Stored case-preserving; match without case sensitivity so a caller
+            # need not know the source's capitalization ("tokyo" -> "Tokyo").
+            stmt = stmt.where(Job.city.ilike(city))
         if q is not None:
             stmt = stmt.where(Job.title.ilike(f"%{q}%"))
         return stmt
@@ -36,10 +45,18 @@ class JobRepository:
         source: str | None = None,
         company: str | None = None,
         location: str | None = None,
+        country: str | None = None,
+        city: str | None = None,
         q: str | None = None,
     ) -> list[Job]:
         stmt = self._apply_filters(
-            select(Job), source=source, company=company, location=location, q=q
+            select(Job),
+            source=source,
+            company=company,
+            location=location,
+            country=country,
+            city=city,
+            q=q,
         ).order_by(Job.id)
         stmt = stmt.limit(limit).offset(offset)
         return list(session.scalars(stmt))
@@ -51,6 +68,8 @@ class JobRepository:
         source: str | None = None,
         company: str | None = None,
         location: str | None = None,
+        country: str | None = None,
+        city: str | None = None,
         q: str | None = None,
     ) -> int:
         stmt = self._apply_filters(
@@ -58,6 +77,8 @@ class JobRepository:
             source=source,
             company=company,
             location=location,
+            country=country,
+            city=city,
             q=q,
         )
         return session.scalar(stmt) or 0
