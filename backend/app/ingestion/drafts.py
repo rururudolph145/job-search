@@ -19,3 +19,5 @@ class JobDraft:
     company: str | None
     location: str | None
     url: str
+    city: str | None = None
+    country: str | None = None

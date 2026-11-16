@@ -1,5 +1,6 @@
 from app.ingestion.normalize import (
     normalize_company,
+    normalize_country,
     normalize_external_id,
     normalize_location,
     normalize_source,
@@ -40,3 +41,14 @@ def test_normalize_company_none_passthrough() -> None:
 def test_normalize_location_none_passthrough() -> None:
     assert normalize_location(None) is None
     assert normalize_location("  Tokyo\tMetro ") == "Tokyo Metro"
+
+
+def test_normalize_country_uppercases_two_letter_code() -> None:
+    assert normalize_country("jp") == "JP"
+    assert normalize_country(" JP ") == "JP"
+
+
+def test_normalize_country_rejects_non_two_letter() -> None:
+    assert normalize_country("") is None
+    assert normalize_country("JPN") is None
+    assert normalize_country(None) is None

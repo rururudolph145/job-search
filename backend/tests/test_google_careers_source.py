@@ -1,6 +1,27 @@
 from app.ingestion.sources.google_careers import GoogleCareersSource
 
 
+def test_fetch_populates_normalized_city_and_country() -> None:
+    canned: list[dict[str, str | None]] = [
+        {
+            "title": "SWE",
+            "location": "Tokyo, Japan",
+            "city": "  tokyo ",
+            "country": "JP",
+            "external_job_id": "123",
+            "url": "https://careers.google.com/jobs/results/123-software-engineer/",
+        },
+    ]
+
+    class FakeSource(GoogleCareersSource):
+        def _run_crawl(self, spider: object) -> list[dict[str, str | None]]:
+            return canned
+
+    drafts = list(FakeSource().fetch())
+    assert drafts[0].city == "tokyo"
+    assert drafts[0].country == "JP"
+
+
 def test_source_converts_yielded_dicts_to_drafts() -> None:
     canned: list[dict[str, str | None]] = [
         {

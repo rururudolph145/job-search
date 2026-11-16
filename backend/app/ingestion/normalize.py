@@ -9,7 +9,10 @@ display concern, not an identity concern.
 
 from __future__ import annotations
 
+import re
 import unicodedata
+
+_COUNTRY_CODE = re.compile(r"^[A-Z]{2}$")
 
 
 def _collapse(value: str) -> str:
@@ -44,3 +47,11 @@ def normalize_location(location: str | None) -> str | None:
     if location is None:
         return None
     return normalize_title(location)
+
+
+def normalize_country(country: str | None) -> str | None:
+    """Uppercase a 2-letter ISO country code; anything else becomes ``None``."""
+    if country is None:
+        return None
+    code = country.strip().upper()
+    return code if _COUNTRY_CODE.match(code) else None

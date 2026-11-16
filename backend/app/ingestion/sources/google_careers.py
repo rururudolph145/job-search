@@ -11,6 +11,7 @@ from scrapy.settings import Settings as ScrapySettings
 from app.ingestion.drafts import JobDraft
 from app.ingestion.normalize import (
     normalize_company,
+    normalize_country,
     normalize_external_id,
     normalize_location,
     normalize_title,
@@ -50,6 +51,8 @@ class GoogleCareersSource:
                 location=normalize_location(raw.get("location")),
                 company=normalize_company(raw.get("company")),
                 url=raw.get("url") or "",
+                city=normalize_location(raw.get("city")),
+                country=normalize_country(raw.get("country")),
             )
             yield draft
 
